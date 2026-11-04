@@ -43,9 +43,9 @@
   - [x] 实现长时间不活跃玩家的 RD 逐渐衰减机制（Rating Decay）
   - [x] 完成 matchmaker 与 ladder 测试套件（25/25 测试全绿通过）
 
-- [ ] **阶段 5：命令行应用、场景案例与工程验证**
-  - [ ] 实现 `cmd/skillrate`：支持接收对局流、更新排行榜并输出格式化表格
-  - [ ] 编写案例一：`examples/chess_ladder`（国际象棋 1v1 天梯演进模拟）
-  - [ ] 编写案例二：`examples/team_brawl`（MOBA / 4v4 战队积分排位模拟）
-  - [ ] 编写专业中英双语 `README.md`
-  - [ ] 执行全量自动化测试套件与 `wasm-gc` 跨平台编译，确保 100% 绿灯通过
+- [x] **阶段 5：命令行应用、场景案例与工程验证**
+  - [x] 实现 `cmd/skillrate`：支持接收对局流、更新排行榜并输出格式化表格
+  - [x] 编写案例一：`examples/chess_ladder`（国际象棋 1v1 天梯演进模拟）
+  - [x] 编写案例二：`examples/team_brawl`（MOBA / 4v4 战队积分排位模拟）
+  - [x] 编写专业中英双语 `README.md`
+  - [x] 执行全量自动化测试套件与 `wasm-gc` 跨平台编译，确保 100% 绿灯通过（25/25 测试全绿，三大可执行文件 wasm-gc 构建全通）

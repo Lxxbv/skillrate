@@ -1,0 +1,6 @@
+import {
+  "Lxxbv/skillrate/src/types",
+  "Lxxbv/skillrate/src/glicko2",
+}
+
+pkgtype(kind: "executable")

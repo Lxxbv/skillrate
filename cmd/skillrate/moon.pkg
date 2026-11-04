@@ -1,0 +1,10 @@
+import {
+  "Lxxbv/skillrate/src/types",
+  "Lxxbv/skillrate/src/elo",
+  "Lxxbv/skillrate/src/glicko2",
+  "Lxxbv/skillrate/src/openskill",
+  "Lxxbv/skillrate/src/matchmaker",
+  "Lxxbv/skillrate/src/ladder",
+}
+
+pkgtype(kind: "executable")

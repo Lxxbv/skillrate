@@ -1,0 +1,7 @@
+import {
+  "Lxxbv/skillrate/src/types",
+  "Lxxbv/skillrate/src/openskill",
+  "Lxxbv/skillrate/src/matchmaker",
+}
+
+pkgtype(kind: "executable")
