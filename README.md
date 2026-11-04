@@ -6,7 +6,8 @@
 [![MoonBit](https://img.shields.io/badge/Language-MoonBit-purple)](https://www.moonbitlang.com/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Target](https://img.shields.io/badge/Target-Wasm--GC%20%7C%20Native-brightgreen)]()
-[![Tests](https://img.shields.io/badge/Tests-25%20Passed%20(100%25)-brightgreen)]()
+[![Tests](https://img.shields.io/badge/Tests-30%20Passed%20(100%25)-brightgreen)]()
+[![Docs](https://img.shields.io/badge/API-Reference-blue)](docs/api.md)
 
 ---
 
@@ -43,11 +44,18 @@ skillrate
 │   ├── openskill     # OpenSkill 多团队多人贝叶斯评分引擎 (Weng-Lin / Plackett-Luce)
 │   ├── matchmaker    # 赛前对局平衡度分析 (Match Quality) 与胜率预测矩阵
 │   └── ladder        # 天梯排行榜系统 (保守评分 μ-3σ 排序、段位晋级与活跃度衰减)
+├── skillrate.mbt     # 顶级统一门面 API
 ├── cmd
 │   └── skillrate     # 演示与交互命令行工具
-└── examples
-    ├── chess_ladder  # 国际象棋特级大师天梯演进模拟
-    └── team_brawl    # 4v4 MOBA 团队战队天梯模拟
+├── examples
+│   ├── chess_ladder  # 国际象棋特级大师天梯演进模拟
+│   └── team_brawl    # 4v4 MOBA 团队战队天梯模拟
+├── web
+│   └── index.html    # 交互式 Web 可视化竞技场与高斯分布曲线
+└── docs
+    ├── api.md        # 完整 API 与数学公理规范文档
+    ├── dedup.md      # 生态查重与独占性分析报告
+    └── decisions.md  # 关键技术与专利规避架构决策
 ```
 
 ---

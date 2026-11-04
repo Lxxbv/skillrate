@@ -1,0 +1,13 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Lxxbv/skillrate/tests/conformance"
+
+// Values
+pub fn is_conformance_suite_available() -> Bool
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

@@ -1,21 +1,31 @@
+///|
 test "Conformance: Glicko-2 extreme rating gap convergence" {
   // 2800 Grandmaster vs 800 Novice
   let gm = @glicko2.Glicko2Rating::new(2800.0, 40.0, 0.05)
   let novice = @glicko2.Glicko2Rating::new(800.0, 350.0, 0.06)
 
   // GM wins as expected
-  let (new_gm, new_novice) = @glicko2.rate_1v1(gm, novice, @types.GameOutcome::Win)
+  let (new_gm, new_novice) = @glicko2.rate_1v1(
+    gm,
+    novice,
+    @types.GameOutcome::Win,
+  )
   assert_true(new_gm.rating >= 2800.0)
   assert_true(new_gm.rating <= 2801.0) // Minimal gain due to massive expected advantage
   assert_true(new_novice.rating < 800.0)
   assert_true(new_novice.deviation >= 349.0) // Near-zero information gain leaves deviation essentially unchanged
 
   // Upset: Novice wins against GM!
-  let (upset_gm, upset_novice) = @glicko2.rate_1v1(gm, novice, @types.GameOutcome::Loss)
+  let (upset_gm, upset_novice) = @glicko2.rate_1v1(
+    gm,
+    novice,
+    @types.GameOutcome::Loss,
+  )
   assert_true(upset_gm.rating < 2800.0) // GM rating drops on loss
   assert_true(upset_novice.rating > 800.0) // Novice rating increases on win
 }
 
+///|
 test "Conformance: OpenSkill 4-team tournament multi-placement" {
   let t1 = [@types.Rating::default()]
   let t2 = [@types.Rating::default()]
@@ -39,6 +49,7 @@ test "Conformance: OpenSkill 4-team tournament multi-placement" {
   assert_true(res[3][0].sigma < 8.3333333)
 }
 
+///|
 test "Conformance: OpenSkill weighted asymmetric player impact" {
   let carry = @types.Rating::default()
   let support = @types.Rating::default()
@@ -59,6 +70,7 @@ test "Conformance: OpenSkill weighted asymmetric player impact" {
   assert_true(new_carry.mu - 25.0 > new_support.mu - 25.0)
 }
 
+///|
 test "Conformance: 1000 simulated matches stability (No NaN / Inf / Negative variance)" {
   let mut p1 = @types.Rating::default()
   let mut p2 = @types.Rating::default()

@@ -1,0 +1,33 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Lxxbv/skillrate"
+
+import {
+  "Lxxbv/skillrate/src/glicko2",
+  "Lxxbv/skillrate/src/ladder",
+  "Lxxbv/skillrate/src/types",
+}
+
+// Values
+pub fn glicko2_rating(r? : Double, rd? : Double, vol? : Double) -> @glicko2.Glicko2Rating
+
+pub fn match_quality(@types.Rating, @types.Rating) -> Double
+
+pub fn new_leaderboard() -> @ladder.Leaderboard
+
+pub fn rate_elo(Double, Double, @types.GameOutcome, k_factor? : Double) -> (Double, Double)
+
+pub fn rate_glicko2(@glicko2.Glicko2Rating, @glicko2.Glicko2Rating, @types.GameOutcome, tau? : Double) -> (@glicko2.Glicko2Rating, @glicko2.Glicko2Rating)
+
+pub fn rate_openskill(Array[Array[@types.Rating]], ranks? : Array[Int32], weights? : Array[Array[Double]]) -> Array[Array[@types.Rating]]
+
+pub fn rating(mu? : Double, sigma? : Double) -> @types.Rating
+
+pub fn win_probability(Array[@types.Rating], Array[@types.Rating]) -> Double
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

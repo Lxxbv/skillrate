@@ -1,3 +1,4 @@
+///|
 test "SkillRate top-level facade API" {
   // 1. Elo facade
   let (new_a, new_b) = rate_elo(1500.0, 1500.0, @types.GameOutcome::Win)
