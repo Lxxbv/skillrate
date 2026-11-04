@@ -1,0 +1,4 @@
+import {
+  "Lxxbv/skillrate/src/types",
+  "Lxxbv/skillrate/src/math" @smath,
+}

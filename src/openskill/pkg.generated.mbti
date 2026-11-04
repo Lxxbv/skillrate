@@ -1,0 +1,34 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Lxxbv/skillrate/src/openskill"
+
+import {
+  "Lxxbv/skillrate/src/types",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn predict_draw(Array[@types.Rating], Array[@types.Rating], config? : OpenSkillConfig) -> Double
+
+pub fn predict_win(Array[@types.Rating], Array[@types.Rating], config? : OpenSkillConfig) -> Double
+
+pub fn rate_2teams(Array[@types.Rating], Array[@types.Rating], @types.GameOutcome, config? : OpenSkillConfig) -> (Array[@types.Rating], Array[@types.Rating])
+
+pub fn rate_teams(Array[Array[@types.Rating]], ranks? : Array[Int32], weights? : Array[Array[Double]], config? : OpenSkillConfig) -> Array[Array[@types.Rating]]
+
+// Errors
+
+// Types and methods
+pub(all) struct OpenSkillConfig {
+  mu : Double
+  sigma : Double
+  beta : Double
+  gamma : Double
+  draw_margin : Double
+  z : Double
+} derive(Eq, @debug.Debug)
+pub fn OpenSkillConfig::default() -> Self
+pub fn OpenSkillConfig::new(mu? : Double, sigma? : Double, beta? : Double, gamma? : Double, draw_margin? : Double, z? : Double) -> Self
+
+// Type aliases
+
+// Traits
