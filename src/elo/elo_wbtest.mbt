@@ -1,0 +1,67 @@
+///|
+test "Elo expected score symmetry" {
+  // Equal rating gives 50% probability
+  let e_equal = expected_score(1500.0, 1500.0)
+  assert_true((e_equal - 0.5).abs() < 1.0e-9)
+
+  // 400 points difference gives approx 10:1 ratio (~0.90909)
+  let e_diff400 = expected_score(1600.0, 1200.0)
+  assert_true((e_diff400 - 0.9090909).abs() < 1.0e-5)
+
+  // E_A + E_B == 1
+  let e_a = expected_score(1700.0, 1450.0)
+  let e_b = expected_score(1450.0, 1700.0)
+  assert_true((e_a + e_b - 1.0).abs() < 1.0e-9)
+}
+
+///|
+test "Elo 1v1 match rating updates" {
+  let cfg = EloConfig::default() // K=32.0
+
+  // Equal match: winner gains 16, loser drops 16
+  let (new_a, new_b) = rate_1v1(
+    1500.0,
+    1500.0,
+    @types.GameOutcome::Win,
+    config=cfg,
+  )
+  assert_true((new_a - 1516.0).abs() < 1.0e-9)
+  assert_true((new_b - 1484.0).abs() < 1.0e-9)
+
+  // Draw between equal players results in no change
+  let (draw_a, draw_b) = rate_1v1(
+    1500.0,
+    1500.0,
+    @types.GameOutcome::Draw,
+    config=cfg,
+  )
+  assert_true((draw_a - 1500.0).abs() < 1.0e-9)
+  assert_true((draw_b - 1500.0).abs() < 1.0e-9)
+
+  // Underdog win causes large rating swing
+  let (underdog_win, fav_loss) = rate_1v1(
+    1200.0,
+    1600.0,
+    @types.GameOutcome::Win,
+    config=cfg,
+  )
+  assert_true(underdog_win > 1228.0)
+  assert_true(fav_loss < 1572.0)
+}
+
+///|
+test "Elo adaptive K-factor" {
+  let adaptive_cfg = EloConfig::new(adaptive_k=true)
+
+  // Newbie player has K=40
+  let k_newbie = resolve_k_factor(adaptive_cfg, 1500.0, matches_played=10)
+  assert_eq(k_newbie, 40.0)
+
+  // Veteran standard player has K=32
+  let k_standard = resolve_k_factor(adaptive_cfg, 1800.0, matches_played=50)
+  assert_eq(k_standard, 32.0)
+
+  // Master player (rating >= 2400) has K=16
+  let k_master = resolve_k_factor(adaptive_cfg, 2500.0, matches_played=100)
+  assert_eq(k_master, 16.0)
+}

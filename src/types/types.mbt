@@ -1,7 +1,7 @@
 ///|
 /// Core Rating model representing a participant's skill distribution:
 /// N(mu, sigma^2).
-pub struct Rating {
+pub(all) struct Rating {
   mu : Double
   sigma : Double
 } derive(Eq, Debug)
@@ -33,7 +33,7 @@ pub fn Rating::variance(self : Rating) -> Double {
 
 ///|
 /// Outcome of a match between two participants.
-pub enum GameOutcome {
+pub(all) enum GameOutcome {
   Win
   Loss
   Draw
@@ -73,7 +73,7 @@ pub fn GameOutcome::reverse(self : GameOutcome) -> GameOutcome {
 
 ///|
 /// A competitive player with identifier, current rating, and display name.
-pub struct Player {
+pub(all) struct Player {
   id : String
   rating : Rating
   name : String
@@ -92,7 +92,7 @@ pub fn Player::new(
 
 ///|
 /// A competitive team consisting of one or more players, with an optional team weight.
-pub struct Team {
+pub(all) struct Team {
   id : String
   players : Array[Player]
   weight : Double

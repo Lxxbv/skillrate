@@ -1,0 +1,31 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Lxxbv/skillrate/src/elo"
+
+import {
+  "Lxxbv/skillrate/src/types",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn expected_score(Double, Double) -> Double
+
+pub fn rate_1v1(Double, Double, @types.GameOutcome, config? : EloConfig, matches_a? : Int32, matches_b? : Int32) -> (Double, Double)
+
+pub fn rate_score(Double, Double, Double, config? : EloConfig) -> (Double, Double)
+
+pub fn resolve_k_factor(EloConfig, Double, matches_played? : Int32) -> Double
+
+// Errors
+
+// Types and methods
+pub struct EloConfig {
+  k_factor : Double
+  initial_rating : Double
+  adaptive_k : Bool
+} derive(Eq, @debug.Debug)
+pub fn EloConfig::default() -> Self
+pub fn EloConfig::new(k_factor? : Double, initial_rating? : Double, adaptive_k? : Bool) -> Self
+
+// Type aliases
+
+// Traits

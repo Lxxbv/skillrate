@@ -16,15 +16,15 @@
   - [x] 实现针对非线性方程的 Illinois 迭代求解器
   - [x] 编写数学库白盒测试（`src/math/math_wbtest.mbt`），验证精度达到 $10^{-7}$ 以上，7/7 测试全绿通过
 
-- [ ] **阶段 2：经典 Elo 与 Glicko-2 核心评分引擎**
-  - [ ] 实现 `src/elo` 模块：标准胜率期望、动态 K 因子自适应调整
-  - [ ] 编写 Elo 单测与极端分差测试（`src/elo/elo_wbtest.mbt`）
-  - [ ] 实现 `src/glicko2` 模块：原始尺度与 Glicko-2 尺度的来回映射
-  - [ ] 实现 Glicko-2 辅助函数 $g(\phi)$ 与 $E(\mu, \mu_j, \phi_j)$
-  - [ ] 实现 Glicko-2 方差 $v$ 与差异量 $\Delta$ 计算
-  - [ ] 实现 Glicko-2 波动率 $\sigma'$ 的 Illinois 割线法收敛迭代
-  - [ ] 实现未参赛周期的偏差自然发散更新
-  - [ ] 严格对齐 Mark Glickman 官方论文中的 3 场比赛完整数值样例，实现 100% 精度断言测试
+- [x] **阶段 2：经典 Elo 与 Glicko-2 核心评分引擎**
+  - [x] 实现 `src/elo` 模块：标准胜率期望、动态 K 因子自适应调整
+  - [x] 编写 Elo 单测与极端分差测试（`src/elo/elo_wbtest.mbt`）
+  - [x] 实现 `src/glicko2` 模块：原始尺度与 Glicko-2 尺度的来回映射
+  - [x] 实现 Glicko-2 辅助函数 $g(\phi)$ 与 $E(\mu, \mu_j, \phi_j)$
+  - [x] 实现 Glicko-2 方差 $v$ 与差异量 $\Delta$ 计算
+  - [x] 实现 Glicko-2 波动率 $\sigma'$ 的 Illinois 割线法收敛迭代
+  - [x] 实现未参赛周期的偏差自然发散更新
+  - [x] 严格对齐 Mark Glickman 官方论文中的 3 场比赛完整数值样例，实现 100% 精度断言测试（13/13 测试全绿通过）
 
 - [ ] **阶段 3：OpenSkill 多团队多人贝叶斯评分引擎**
   - [ ] 实现 `src/openskill` 模块：多元高斯先验表示与团队聚合

@@ -1,0 +1,49 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Lxxbv/skillrate/src/glicko2"
+
+import {
+  "Lxxbv/skillrate/src/types",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub const SCALE : Double = 173.7177927613
+
+pub fn expected_score(Double, Double, Double) -> Double
+
+pub fn g(Double) -> Double
+
+pub fn rate_1v1(Glicko2Rating, Glicko2Rating, @types.GameOutcome, config? : Glicko2Config) -> (Glicko2Rating, Glicko2Rating)
+
+pub fn rate_period(Glicko2Rating, Array[OpponentMatch], config? : Glicko2Config) -> Glicko2Rating
+
+// Errors
+
+// Types and methods
+pub(all) struct Glicko2Config {
+  tau : Double
+  tolerance : Double
+} derive(Eq, @debug.Debug)
+pub fn Glicko2Config::default() -> Self
+pub fn Glicko2Config::new(tau? : Double, tolerance? : Double) -> Self
+
+pub(all) struct Glicko2Rating {
+  rating : Double
+  deviation : Double
+  volatility : Double
+} derive(Eq, @debug.Debug)
+pub fn Glicko2Rating::default() -> Self
+pub fn Glicko2Rating::from_rating(@types.Rating, volatility? : Double) -> Self
+pub fn Glicko2Rating::new(Double, Double, Double) -> Self
+pub fn Glicko2Rating::ordinal(Self, z? : Double) -> Double
+pub fn Glicko2Rating::to_rating(Self) -> @types.Rating
+
+pub(all) struct OpponentMatch {
+  opponent : Glicko2Rating
+  score : Double
+} derive(Eq, @debug.Debug)
+pub fn OpponentMatch::new(Glicko2Rating, Double) -> Self
+
+// Type aliases
+
+// Traits
