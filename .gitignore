@@ -1,0 +1,16 @@
+# MoonBit build outputs
+_build/
+target/
+.mooncakes/
+
+# Local proposal documents (kept local only per competition guidelines)
+项目申报书.md
+PROJECT_PROPOSAL.md
+*.proposal.md
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
