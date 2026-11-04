@@ -1,0 +1,48 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Lxxbv/skillrate/src/types"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub enum GameOutcome {
+  Win
+  Loss
+  Draw
+} derive(Eq, @debug.Debug)
+pub fn GameOutcome::from_score(Double) -> Self
+pub fn GameOutcome::reverse(Self) -> Self
+pub fn GameOutcome::to_score(Self) -> Double
+
+pub struct Player {
+  id : String
+  rating : Rating
+  name : String
+} derive(Eq, @debug.Debug)
+pub fn Player::new(String, rating? : Rating, name? : String) -> Self
+
+pub struct Rating {
+  mu : Double
+  sigma : Double
+} derive(Eq, @debug.Debug)
+pub fn Rating::default() -> Self
+pub fn Rating::new(Double, Double) -> Self
+pub fn Rating::ordinal(Self, z? : Double) -> Double
+pub fn Rating::variance(Self) -> Double
+
+pub struct Team {
+  id : String
+  players : Array[Player]
+  weight : Double
+} derive(Eq, @debug.Debug)
+pub fn Team::new(String, Array[Player], weight? : Double) -> Self
+pub fn Team::single(Player, weight? : Double) -> Self
+
+// Type aliases
+
+// Traits

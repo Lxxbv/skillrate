@@ -1,20 +1,20 @@
 # 任务清单与完成进度 (Tasks Checklist)
 
-- [ ] **阶段 0：工程配置、查重调研与立项申报**
+- [x] **阶段 0：工程配置、查重调研与立项申报**
   - [x] 配置本地 Git 账号为 `Lxxbv` 与对应 noreply 邮箱
   - [x] 完成官方 mooncakes.io 全面查重检索并沉淀 `docs/dedup.md`
   - [x] 确立架构设计与技术选型文档 `docs/plan.md`、`docs/decisions.md`
-  - [x] 编制符合官方标准的五段式项目申报书（`项目申报书.md`、`PROJECT_PROPOSAL.md`）
-  - [ ] 初始化 `moon.mod.json` 与 CI 工作流配置（`moon check`、`moon test`、`moon fmt`、`moon build --target wasm-gc`）
-  - [ ] 添加 Apache-2.0 许可证文件
+  - [x] 编制符合官方标准的五段式项目申报书（`项目申报书.md`、`PROJECT_PROPOSAL.md`，本地保留不入版本库）
+  - [x] 初始化 `moon.mod` 与 CI 工作流配置（`moon check`、`moon test`、`moon fmt`、`moon build --target wasm-gc`）
+  - [x] 添加 Apache-2.0 许可证文件
 
-- [ ] **阶段 1：数学核心库与基础领域模型 (src/math & src/types)**
-  - [ ] 定义 `Rating`、`GameOutcome`、`Player`、`Team` 等核心领域模型
-  - [ ] 实现基础常量与高精度浮点工具
-  - [ ] 实现标准正态分布累积分布函数 $\Phi(x)$ 与概率密度函数 $\phi(x)$
-  - [ ] 实现高精度误差函数 $\text{erf}(x)$ 与互补误差函数 $\text{erfc}(x)$
-  - [ ] 实现针对非线性方程的 Illinois 迭代求解器
-  - [ ] 编写数学库白盒测试（`src/math/math_wbtest.mbt`），验证精度达到 $10^{-7}$ 以上
+- [x] **阶段 1：数学核心库与基础领域模型 (src/math & src/types)**
+  - [x] 定义 `Rating`、`GameOutcome`、`Player`、`Team` 等核心领域模型
+  - [x] 实现基础常量与高精度浮点工具
+  - [x] 实现标准正态分布累积分布函数 $\Phi(x)$ 与概率密度函数 $\phi(x)$
+  - [x] 实现高精度误差函数 $\text{erf}(x)$ 与互补误差函数 $\text{erfc}(x)$
+  - [x] 实现针对非线性方程的 Illinois 迭代求解器
+  - [x] 编写数学库白盒测试（`src/math/math_wbtest.mbt`），验证精度达到 $10^{-7}$ 以上，7/7 测试全绿通过
 
 - [ ] **阶段 2：经典 Elo 与 Glicko-2 核心评分引擎**
   - [ ] 实现 `src/elo` 模块：标准胜率期望、动态 K 因子自适应调整
