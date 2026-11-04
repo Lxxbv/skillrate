@@ -1,0 +1,42 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Lxxbv/skillrate/src/ladder"
+
+import {
+  "Lxxbv/skillrate/src/types",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn resolve_tier(Double) -> String
+
+// Errors
+
+// Types and methods
+pub(all) struct LadderEntry {
+  player_id : String
+  name : String
+  mut rating : @types.Rating
+  mut conservative_score : Double
+  mut tier : String
+  mut rank : Int32
+  mut wins : Int32
+  mut losses : Int32
+  mut draws : Int32
+  mut last_active_epoch : Int64
+} derive(Eq, @debug.Debug)
+pub fn LadderEntry::new(String, name? : String, rating? : @types.Rating, epoch? : Int64) -> Self
+
+pub(all) struct Leaderboard {
+  entries : Array[LadderEntry]
+} derive(Eq, @debug.Debug)
+pub fn Leaderboard::apply_inactivity_decay(Self, Int64, inactive_threshold? : Int64, decay_sigma_increase? : Double) -> Unit
+pub fn Leaderboard::find_entry(Self, String) -> LadderEntry?
+pub fn Leaderboard::new() -> Self
+pub fn Leaderboard::record_match(Self, String, String, @types.GameOutcome, epoch? : Int64) -> Bool
+pub fn Leaderboard::register_player(Self, String, name? : String, rating? : @types.Rating, epoch? : Int64) -> Unit
+pub fn Leaderboard::render_ascii_table(Self, limit? : Int32) -> String
+pub fn Leaderboard::sort_and_rank(Self) -> Array[LadderEntry]
+
+// Type aliases
+
+// Traits

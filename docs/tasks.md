@@ -34,13 +34,14 @@
   - [x] 支持比赛平局结算（Draw Margin）
   - [x] 引入标准黄金测试集（对齐主流 openskill 实现基准），编写白盒测试套件（19/19 测试全绿通过）
 
-- [ ] **阶段 4：对局质量、天梯系统与活跃度衰减**
-  - [ ] 实现 `src/matchmaker` 模块：1v1 与多队匹配质量（Match Quality）计算
-  - [ ] 实现胜率预测矩阵（Win Probability Matrix）
-  - [ ] 实现 `src/ladder` 模块：天梯排行榜（Leaderboard）数据结构
-  - [ ] 实现基于保守评分（Conservative Rating: $\mu - 3\sigma$）的公平排位算法
-  - [ ] 实现天梯段位（Tier & Division）划分规则
-  - [ ] 实现长时间不活跃玩家的 RD 逐渐衰减机制（Rating Decay）
+- [x] **阶段 4：对局质量、天梯系统与活跃度衰减**
+  - [x] 实现 `src/matchmaker` 模块：1v1 与多队匹配质量（Match Quality）计算
+  - [x] 实现胜率预测矩阵（Win Probability Matrix）
+  - [x] 实现 `src/ladder` 模块：天梯排行榜（Leaderboard）数据结构
+  - [x] 实现基于保守评分（Conservative Rating: $\mu - 3\sigma$）的公平排位算法
+  - [x] 实现天梯段位（Tier & Division）划分规则
+  - [x] 实现长时间不活跃玩家的 RD 逐渐衰减机制（Rating Decay）
+  - [x] 完成 matchmaker 与 ladder 测试套件（25/25 测试全绿通过）
 
 - [ ] **阶段 5：命令行应用、场景案例与工程验证**
   - [ ] 实现 `cmd/skillrate`：支持接收对局流、更新排行榜并输出格式化表格

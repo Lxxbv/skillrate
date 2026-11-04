@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Lxxbv/skillrate/src/matchmaker"
+
+import {
+  "Lxxbv/skillrate/src/types",
+}
+
+// Values
+pub const DEFAULT_BETA : Double = 4.166666666666667
+
+pub fn is_fair_match(Array[Array[@types.Rating]], min_quality? : Double, beta? : Double) -> Bool
+
+pub fn match_quality_1v1(@types.Rating, @types.Rating, beta? : Double) -> Double
+
+pub fn match_quality_2teams(Array[@types.Rating], Array[@types.Rating], beta? : Double) -> Double
+
+pub fn match_quality_teams(Array[Array[@types.Rating]], beta? : Double) -> Double
+
+pub fn win_probability_matrix(Array[Array[@types.Rating]], beta? : Double) -> Array[Array[Double]]
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
