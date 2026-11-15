@@ -2,23 +2,54 @@
 package "Lxxbv/skillrate"
 
 import {
+  "Lxxbv/skillrate/src/bradley_terry",
+  "Lxxbv/skillrate/src/elo",
+  "Lxxbv/skillrate/src/glicko",
   "Lxxbv/skillrate/src/glicko2",
   "Lxxbv/skillrate/src/ladder",
+  "Lxxbv/skillrate/src/matchmaker",
   "Lxxbv/skillrate/src/types",
+  "Lxxbv/skillrate/src/unified",
 }
 
 // Values
+pub fn balance_teams(Array[@types.Player]) -> (Array[@types.Player], Array[@types.Player], Double)
+
 pub fn glicko2_rating(r? : Double, rd? : Double, vol? : Double) -> @glicko2.Glicko2Rating
+
+pub fn glicko_rating(r? : Double, rd? : Double) -> @glicko.GlickoRating
 
 pub fn match_quality(@types.Rating, @types.Rating) -> Double
 
 pub fn new_leaderboard() -> @ladder.Leaderboard
 
+pub fn new_matchmaking_queue() -> @matchmaker.MatchmakingQueue
+
+pub fn new_placement_tracker(threshold? : Int32) -> @ladder.PlacementTracker
+
+pub fn performance_rating(Array[Double], Double) -> Double
+
+pub fn rate_bradley_terry(@bradley_terry.BradleyTerryRating, @bradley_terry.BradleyTerryRating, @types.GameOutcome) -> (@bradley_terry.BradleyTerryRating, @bradley_terry.BradleyTerryRating)
+
+pub fn rate_dwz(@elo.DWZRating, @elo.DWZRating, @types.GameOutcome) -> (@elo.DWZRating, @elo.DWZRating)
+
+pub fn rate_ecf(@elo.ECFRating, @elo.ECFRating, @types.GameOutcome) -> (@elo.ECFRating, @elo.ECFRating)
+
 pub fn rate_elo(Double, Double, @types.GameOutcome, k_factor? : Double) -> (Double, Double)
+
+pub fn rate_ffa(Array[@types.Rating], Array[Int32], algo? : @unified.AlgorithmKind) -> Array[@types.Rating]
+
+pub fn rate_glicko(@glicko.GlickoRating, @glicko.GlickoRating, @types.GameOutcome) -> (@glicko.GlickoRating, @glicko.GlickoRating)
 
 pub fn rate_glicko2(@glicko2.Glicko2Rating, @glicko2.Glicko2Rating, @types.GameOutcome, tau? : Double) -> (@glicko2.Glicko2Rating, @glicko2.Glicko2Rating)
 
 pub fn rate_openskill(Array[Array[@types.Rating]], ranks? : Array[Int32], weights? : Array[Array[Double]]) -> Array[Array[@types.Rating]]
+
+pub fn rate_thurstone_mosteller(@bradley_terry.ThurstoneMostellerRating, @bradley_terry.ThurstoneMostellerRating, @types.GameOutcome) -> (@bradley_terry.ThurstoneMostellerRating, @bradley_terry.ThurstoneMostellerRating)
+
+pub fn rate_topology(@unified.AlgorithmKind, @unified.MatchTopology, Array[Array[@types.Rating]], Array[Int32]) -> Array[Array[@types.Rating]]
+
+pub fn rate_unified_1v1(@unified.AlgorithmKind, @types.Rating, @types.Rating, @types.GameOutcome) -> (@types.Rating, @types.Rating)
 
 pub fn rating(mu? : Double, sigma? : Double) -> @types.Rating
 

@@ -3,8 +3,10 @@ import {
   "Lxxbv/skillrate/src/elo",
   "Lxxbv/skillrate/src/glicko2",
   "Lxxbv/skillrate/src/openskill",
+  "Lxxbv/skillrate/src/bradley_terry" @bt,
   "Lxxbv/skillrate/src/matchmaker",
   "Lxxbv/skillrate/src/ladder",
+  "Lxxbv/skillrate/src/unified",
 }
 
 pkgtype(kind: "executable")

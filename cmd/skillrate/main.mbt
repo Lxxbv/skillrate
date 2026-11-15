@@ -142,5 +142,117 @@ fn main {
 
   let table = board.render_ascii_table(limit=10)
   println(table)
+
+  // --- Section 5: Bradley-Terry & Thurstone-Mosteller (LLM Benchmark) ---
+  println("[5] Bradley-Terry & Thurstone-Mosteller (LLM Chatbot Arena)")
+  let bt_gpt4 = @bt.BradleyTerryRating::new(beta=0.8)
+  let bt_claude = @bt.BradleyTerryRating::new(beta=0.6)
+  let bt_prob = @bt.predict_win_bt(bt_gpt4, bt_claude)
+  println("Model A (GPT-4, beta=0.8) vs Model B (Claude-3.5, beta=0.6)")
+  println("Win probability of Model A: " + (bt_prob * 100.0).to_string() + "%")
+
+  let (up_gpt4, up_claude) = @bt.rate_1v1_bt(
+    bt_gpt4,
+    bt_claude,
+    @types.GameOutcome::Win,
+  )
+  println("After Human Preference Evaluation (Model A wins):")
+  println("  Model A new beta: " + up_gpt4.beta.to_string())
+  println("  Model B new beta: " + up_claude.beta.to_string())
+  println("")
+
+  // --- Section 6: Dynamic Matchmaking Queue & Team Balancer ---
+  println("[6] Matchmaking Queue & Fair Team Balancer")
+  let pool = [
+    @types.Player::new(
+      "p1",
+      rating=@types.Rating::new(38.0, 3.0),
+      name="Striker",
+    ),
+    @types.Player::new(
+      "p2",
+      rating=@types.Rating::new(34.0, 3.0),
+      name="Guardian",
+    ),
+    @types.Player::new(
+      "p3",
+      rating=@types.Rating::new(31.0, 3.0),
+      name="Sniper",
+    ),
+    @types.Player::new("p4", rating=@types.Rating::new(28.0, 3.0), name="Medic"),
+    @types.Player::new("p5", rating=@types.Rating::new(25.0, 3.0), name="Scout"),
+    @types.Player::new(
+      "p6",
+      rating=@types.Rating::new(22.0, 3.0),
+      name="Engineer",
+    ),
+  ]
+  let (team_blue, team_red, bal_quality) = @matchmaker.balance_teams(pool)
+  println("Auto-partitioning 6 players into two 3v3 teams:")
+  println(
+    "  Balanced Match Quality: " + (bal_quality * 100.0).to_string() + "%",
+  )
+  println(
+    "  Blue Team: " +
+    team_blue[0].name +
+    ", " +
+    team_blue[1].name +
+    ", " +
+    team_blue[2].name,
+  )
+  println(
+    "  Red Team:  " +
+    team_red[0].name +
+    ", " +
+    team_red[1].name +
+    ", " +
+    team_red[2].name,
+  )
+  println("")
+
+  // --- Section 7: Season Soft Reset & Placement Tracking ---
+  println("[7] Season Soft Reset & Placement Tracker")
+  let tracker = @ladder.PlacementTracker::new(threshold=5)
+  let rem_matches = tracker.record_match("challenger_1")
+  println(
+    "New player provisional placement: " +
+    tracker.is_provisional("challenger_1").to_string(),
+  )
+  println("Remaining placement matches: " + rem_matches.to_string())
+
+  println("Executing Season Soft Reset across Leaderboard...")
+  board.soft_reset_season(alpha=0.7)
+  let reset_table = board.render_ascii_table(limit=3)
+  println("Leaderboard after Soft Reset:")
+  println(reset_table)
+
+  // --- Section 8: DWZ, ECF & Unified Topology Dispatch ---
+  println("[8] DWZ, ECF & Unified Topology Dispatch (FFA / Multi-Team)")
+  let (dwz_w, dwz_l) = @elo.rate_dwz_1v1(
+    @elo.DWZRating::new(rating=1600.0, index=5),
+    @elo.DWZRating::new(rating=1500.0, index=5),
+    @types.GameOutcome::Win,
+  )
+  println(
+    "DWZ 1v1 Update: Winner=" +
+    dwz_w.rating.to_string() +
+    ", Loser=" +
+    dwz_l.rating.to_string(),
+  )
+  let ffa_res = @unified.rate_ffa(
+    [
+      @types.Rating::default(),
+      @types.Rating::default(),
+      @types.Rating::default(),
+      @types.Rating::default(),
+    ],
+    [1, 2, 3, 4],
+    algo=@unified.AlgorithmKind::ThurstoneMosteller,
+  )
+  println(
+    "FFA 4-Player Thurstone-Mosteller 1st Place mu: " +
+    ffa_res[0].mu.to_string(),
+  )
+
   println("Demonstration completed successfully.")
 }

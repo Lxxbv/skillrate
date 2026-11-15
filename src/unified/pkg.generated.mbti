@@ -1,0 +1,47 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Lxxbv/skillrate/src/unified"
+
+import {
+  "Lxxbv/skillrate/src/types",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn performance_rating(Array[Double], Double) -> Double
+
+pub fn predict_win(AlgorithmKind, @types.Rating, @types.Rating) -> Double
+
+pub fn rate_1v1(AlgorithmKind, @types.Rating, @types.Rating, @types.GameOutcome) -> (@types.Rating, @types.Rating)
+
+pub fn rate_ffa(Array[@types.Rating], Array[Int32], algo? : AlgorithmKind) -> Array[@types.Rating]
+
+pub fn rate_multi_teams(Array[Array[@types.Rating]], Array[Int32], algo? : AlgorithmKind) -> Array[Array[@types.Rating]]
+
+pub fn rate_topology(AlgorithmKind, MatchTopology, Array[Array[@types.Rating]], Array[Int32]) -> Array[Array[@types.Rating]]
+
+pub fn rate_two_teams(Array[@types.Rating], Array[@types.Rating], @types.GameOutcome, algo? : AlgorithmKind) -> (Array[@types.Rating], Array[@types.Rating])
+
+// Errors
+
+// Types and methods
+pub(all) enum AlgorithmKind {
+  Elo
+  Glicko
+  Glicko2
+  OpenSkill
+  ThurstoneMosteller
+  BradleyTerry
+  DWZ
+  ECF
+} derive(Eq, @debug.Debug)
+
+pub(all) enum MatchTopology {
+  OneVsOne
+  TwoTeam
+  MultiTeam
+  FreeForAll
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
