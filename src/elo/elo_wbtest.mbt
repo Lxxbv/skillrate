@@ -65,3 +65,33 @@ test "Elo adaptive K-factor" {
   let k_master = resolve_k_factor(adaptive_cfg, 2500.0, matches_played=100)
   assert_eq(k_master, 16.0)
 }
+
+///|
+test "DWZ rating 1v1 update and win prediction" {
+  let p1 = DWZRating::new(rating=1600.0, index=5)
+  let p2 = DWZRating::new(rating=1400.0, index=5)
+
+  let prob = predict_win_dwz(p1, p2)
+  assert_true(prob > 0.75 && prob < 0.77)
+
+  let (new_p1, new_p2) = rate_dwz_1v1(p1, p2, @types.GameOutcome::Win)
+  assert_true(new_p1.rating > 1600.0)
+  assert_true(new_p2.rating < 1400.0)
+  assert_eq(new_p1.index, 6)
+  assert_eq(new_p2.index, 6)
+}
+
+///|
+test "ECF grading 1v1 update and 40-point cap rule" {
+  let a = ECFRating::new(rating=120.0)
+  let b = ECFRating::new(rating=120.0)
+
+  let (win_a, loss_b) = rate_ecf_1v1(a, b, @types.GameOutcome::Win)
+  assert_true((win_a.rating - (120.0 + 50.0 / 30.0)).abs() < 1.0e-6)
+  assert_true((loss_b.rating - (120.0 - 50.0 / 30.0)).abs() < 1.0e-6)
+
+  // Elo conversion symmetry
+  let elo = a.to_elo()
+  let back = ECFRating::from_elo(elo)
+  assert_true((back.rating - 120.0).abs() < 1.0e-9)
+}

@@ -7,9 +7,19 @@ import {
 }
 
 // Values
+pub fn dwz_development_coeff(Double, Int32, age_base? : Double) -> Double
+
 pub fn expected_score(Double, Double) -> Double
 
+pub fn predict_win_dwz(DWZRating, DWZRating) -> Double
+
+pub fn predict_win_ecf(ECFRating, ECFRating) -> Double
+
 pub fn rate_1v1(Double, Double, @types.GameOutcome, config? : EloConfig, matches_a? : Int32, matches_b? : Int32) -> (Double, Double)
+
+pub fn rate_dwz_1v1(DWZRating, DWZRating, @types.GameOutcome, age_base? : Double) -> (DWZRating, DWZRating)
+
+pub fn rate_ecf_1v1(ECFRating, ECFRating, @types.GameOutcome, period_games? : Double) -> (ECFRating, ECFRating)
 
 pub fn rate_score(Double, Double, Double, config? : EloConfig) -> (Double, Double)
 
@@ -18,6 +28,21 @@ pub fn resolve_k_factor(EloConfig, Double, matches_played? : Int32) -> Double
 // Errors
 
 // Types and methods
+pub(all) struct DWZRating {
+  rating : Double
+  index : Int32
+} derive(Eq, @debug.Debug)
+pub fn DWZRating::default() -> Self
+pub fn DWZRating::new(rating? : Double, index? : Int32) -> Self
+
+pub(all) struct ECFRating {
+  rating : Double
+} derive(Eq, @debug.Debug)
+pub fn ECFRating::default() -> Self
+pub fn ECFRating::from_elo(Double) -> Self
+pub fn ECFRating::new(rating? : Double) -> Self
+pub fn ECFRating::to_elo(Self) -> Double
+
 pub struct EloConfig {
   k_factor : Double
   initial_rating : Double
