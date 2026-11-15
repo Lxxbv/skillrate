@@ -3,10 +3,13 @@ package "Lxxbv/skillrate/src/matchmaker"
 
 import {
   "Lxxbv/skillrate/src/types",
+  "moonbitlang/core/debug",
 }
 
 // Values
 pub const DEFAULT_BETA : Double = 4.166666666666667
+
+pub fn balance_teams(Array[@types.Player]) -> (Array[@types.Player], Array[@types.Player], Double)
 
 pub fn is_fair_match(Array[Array[@types.Rating]], min_quality? : Double, beta? : Double) -> Bool
 
@@ -16,11 +19,28 @@ pub fn match_quality_2teams(Array[@types.Rating], Array[@types.Rating], beta? : 
 
 pub fn match_quality_teams(Array[Array[@types.Rating]], beta? : Double) -> Double
 
+pub fn smurf_acceleration_factor(Int32, Double) -> Double
+
 pub fn win_probability_matrix(Array[Array[@types.Rating]], beta? : Double) -> Array[Array[Double]]
 
 // Errors
 
 // Types and methods
+pub(all) struct MatchmakingQueue {
+  players : Array[QueuedPlayer]
+} derive(Eq, @debug.Debug)
+pub fn MatchmakingQueue::batch_pair_all(Self, Int32, base_window? : Double, expansion_rate? : Double) -> Array[(QueuedPlayer, QueuedPlayer)]
+pub fn MatchmakingQueue::enqueue(Self, QueuedPlayer) -> Unit
+pub fn MatchmakingQueue::find_pair(Self, Int32, base_window? : Double, expansion_rate? : Double) -> (QueuedPlayer, QueuedPlayer)?
+pub fn MatchmakingQueue::new() -> Self
+pub fn MatchmakingQueue::remove(Self, String) -> Bool
+
+pub(all) struct QueuedPlayer {
+  id : String
+  rating : @types.Rating
+  enqueue_tick : Int32
+} derive(Eq, @debug.Debug)
+pub fn QueuedPlayer::new(String, @types.Rating, Int32) -> Self
 
 // Type aliases
 

@@ -53,3 +53,71 @@ test "Win probability matrix" {
   assert_true((mat[0][1] + mat[1][0] - 1.0).abs() < 1.0e-9)
   assert_true((mat[1][2] + mat[2][1] - 1.0).abs() < 1.0e-9)
 }
+
+///|
+test "MatchmakingQueue dynamic window expansion" {
+  let queue = MatchmakingQueue::new()
+  let p1 = QueuedPlayer::new("Alice", @types.Rating::new(30.0, 3.0), 0)
+  let p2 = QueuedPlayer::new("Bob", @types.Rating::new(38.0, 3.0), 0)
+
+  queue.enqueue(p1)
+  queue.enqueue(p2)
+
+  // At tick 0, gap is 8.0, base_window=3.0 -> no match found
+  let match_at_0 = queue.find_pair(0, base_window=3.0, expansion_rate=0.5)
+  assert_true(match_at_0 is None)
+
+  // At tick 12, window expands: 3.0 + 0.5 * 12 = 9.0 >= 8.0 -> match found!
+  let match_at_12 = queue.find_pair(12, base_window=3.0, expansion_rate=0.5)
+  assert_true(match_at_12 is Some(_))
+  assert_eq(queue.players.length(), 0)
+}
+
+///|
+test "TeamBalancer balances 6 players into two fair teams" {
+  let players = [
+    @types.Player::new("p1", rating=@types.Rating::new(40.0, 3.0)),
+    @types.Player::new("p2", rating=@types.Rating::new(35.0, 3.0)),
+    @types.Player::new("p3", rating=@types.Rating::new(30.0, 3.0)),
+    @types.Player::new("p4", rating=@types.Rating::new(28.0, 3.0)),
+    @types.Player::new("p5", rating=@types.Rating::new(24.0, 3.0)),
+    @types.Player::new("p6", rating=@types.Rating::new(20.0, 3.0)),
+  ]
+
+  let (team_a, team_b, quality) = balance_teams(players)
+  assert_eq(team_a.length(), 3)
+  assert_eq(team_b.length(), 3)
+
+  // Quality should be high (> 0.5)
+  assert_true(quality > 0.5)
+
+  // Team sums must be close
+  let mut sum_a = 0.0
+  let mut sum_b = 0.0
+  for p in team_a {
+    sum_a = sum_a + p.rating.mu
+  }
+  for p in team_b {
+    sum_b = sum_b + p.rating.mu
+  }
+  assert_true((sum_a - sum_b).abs() <= 5.0)
+}
+
+///|
+test "Batch lobby pairing and smurf win-streak acceleration" {
+  let queue = MatchmakingQueue::new()
+  queue.enqueue(QueuedPlayer::new("p1", @types.Rating::new(25.0, 3.0), 0))
+  queue.enqueue(QueuedPlayer::new("p2", @types.Rating::new(26.0, 3.0), 0))
+  queue.enqueue(QueuedPlayer::new("p3", @types.Rating::new(40.0, 3.0), 0))
+  queue.enqueue(QueuedPlayer::new("p4", @types.Rating::new(41.5, 3.0), 0))
+
+  let pairs = queue.batch_pair_all(2, base_window=2.5, expansion_rate=0.5)
+  assert_eq(pairs.length(), 2)
+  assert_eq(queue.players.length(), 0)
+
+  let normal_mult = smurf_acceleration_factor(1, 0.3)
+  assert_eq(normal_mult, 1.0)
+
+  let smurf_mult = smurf_acceleration_factor(6, 2.8)
+  assert_true(smurf_mult > 1.8 && smurf_mult <= 2.5)
+}
