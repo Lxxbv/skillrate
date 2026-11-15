@@ -109,6 +109,15 @@ pub fn expected_score(mu : Double, mu_j : Double, phi_j : Double) -> Double {
 }
 
 ///|
+/// Predict winning probability of Player A beating Player B in Glicko-2.
+pub fn predict_win(a : Glicko2Rating, b : Glicko2Rating) -> Double {
+  let mu_a = (a.rating - 1500.0) / SCALE
+  let mu_b = (b.rating - 1500.0) / SCALE
+  let phi_b = b.deviation / SCALE
+  expected_score(mu_a, mu_b, phi_b)
+}
+
+///|
 /// Calculate updated Glicko-2 rating after a rating period with m opponents.
 pub fn rate_period(
   player : Glicko2Rating,
