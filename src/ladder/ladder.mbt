@@ -241,3 +241,146 @@ pub fn Leaderboard::render_ascii_table(
   }
   s
 }
+
+// -----------------------------------------------------------------------------
+// Season Lifecycle & Soft Reset
+// -----------------------------------------------------------------------------
+
+///|
+/// Execute a seasonal soft reset across the entire leaderboard:
+/// mu' = alpha * mu + (1 - alpha) * 25.0
+/// sigma' = min(sqrt(sigma^2 + 4.0), 25.0 / 3.0)
+pub fn Leaderboard::soft_reset_season(
+  self : Leaderboard,
+  alpha~ : Double = 0.75,
+) -> Unit {
+  let default_mu = 25.0
+  let max_sigma = 25.0 / 3.0
+
+  for e in self.entries {
+    let new_mu = alpha * e.rating.mu + (1.0 - alpha) * default_mu
+    let raw_sigma = (e.rating.sigma * e.rating.sigma + 4.0).sqrt()
+    let new_sigma = if raw_sigma > max_sigma { max_sigma } else { raw_sigma }
+
+    e.rating = @types.Rating::new(new_mu, new_sigma)
+    e.conservative_score = e.rating.ordinal()
+    e.tier = resolve_tier(e.conservative_score)
+    e.wins = 0
+    e.losses = 0
+    e.draws = 0
+  }
+  let _ = self.sort_and_rank()
+}
+
+// -----------------------------------------------------------------------------
+// Placement Match Tracker & Demotion Protection
+// -----------------------------------------------------------------------------
+
+///|
+/// Tracks provisional placement status for competitive players.
+pub(all) struct PlacementTracker {
+  provisional_threshold : Int32
+  records : Array[(String, Int32)]
+} derive(Eq, Debug)
+
+///|
+/// Construct a PlacementTracker.
+pub fn PlacementTracker::new(threshold~ : Int32 = 5) -> PlacementTracker {
+  { provisional_threshold: threshold, records: [], }
+}
+
+///|
+/// Check if a player is still in provisional placement matches.
+pub fn PlacementTracker::is_provisional(
+  self : PlacementTracker,
+  player_id : String,
+) -> Bool {
+  for r in self.records {
+    let (id, count) = r
+    if id == player_id {
+      return count < self.provisional_threshold
+    }
+  }
+  true
+}
+
+///|
+/// Record a match played and return remaining placement matches.
+pub fn PlacementTracker::record_match(
+  self : PlacementTracker,
+  player_id : String,
+) -> Int32 {
+  for i = 0; i < self.records.length(); i = i + 1 {
+    let (id, count) = self.records[i]
+    if id == player_id {
+      let new_count = count + 1
+      self.records[i] = (id, new_count)
+      let rem = self.provisional_threshold - new_count
+      return if rem < 0 { 0 } else { rem }
+    }
+  }
+  self.records.push((player_id, 1))
+  let rem = self.provisional_threshold - 1
+  if rem < 0 {
+    0
+  } else {
+    rem
+  }
+}
+
+///|
+/// Generate Swiss-system tournament pairings for the current round by sorting
+/// players by conservative score and pairing adjacent brackets.
+pub fn Leaderboard::swiss_pair_round(
+  self : Leaderboard,
+) -> Array[(LadderEntry, LadderEntry)] {
+  let sorted = self.sort_and_rank()
+  let pairs : Array[(LadderEntry, LadderEntry)] = []
+  let mut i = 0
+  while i + 1 < sorted.length() {
+    pairs.push((sorted[i], sorted[i + 1]))
+    i = i + 2
+  }
+  pairs
+}
+
+///|
+/// Tier promotion series tracker (Best-of-N series, e.g. Bo3 or Bo5).
+pub(all) struct PromotionSeries {
+  player_id : String
+  target_tier : String
+  wins_required : Int32
+  mut wins : Int32
+  mut losses : Int32
+} derive(Eq, Debug)
+
+///|
+/// Create a new PromotionSeries (default Best-of-3 requiring 2 wins).
+pub fn PromotionSeries::new(
+  player_id : String,
+  target_tier : String,
+  wins_required~ : Int32 = 2,
+) -> PromotionSeries {
+  { player_id, target_tier, wins_required, wins: 0, losses: 0, }
+}
+
+///|
+/// Record a game in the promotion series.
+/// Returns Some(true) if promoted, Some(false) if series failed, or None if still in progress.
+pub fn PromotionSeries::record_game(
+  self : PromotionSeries,
+  won : Bool,
+) -> Bool? {
+  if won {
+    self.wins = self.wins + 1
+  } else {
+    self.losses = self.losses + 1
+  }
+  if self.wins >= self.wins_required {
+    Some(true)
+  } else if self.losses >= self.wins_required {
+    Some(false)
+  } else {
+    None
+  }
+}

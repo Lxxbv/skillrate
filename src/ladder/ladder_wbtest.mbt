@@ -71,3 +71,63 @@ test "Leaderboard ASCII table rendering" {
   assert_true(table.contains("Alpha"))
   assert_true(table.contains("Bravo"))
 }
+
+///|
+test "Leaderboard season soft reset" {
+  let board = Leaderboard::new()
+  board.register_player(
+    "top",
+    name="TopGM",
+    rating=@types.Rating::new(45.0, 3.0),
+  )
+  let top = board.find_entry("top").unwrap()
+  top.wins = 25
+
+  board.soft_reset_season(alpha=0.7)
+
+  // Wins reset to 0
+  assert_eq(top.wins, 0)
+
+  // Rating compressed toward 25.0: 0.7 * 45 + 0.3 * 25 = 31.5 + 7.5 = 39.0
+  assert_true(top.rating.mu < 45.0)
+  assert_true(top.rating.mu > 25.0)
+
+  // Uncertainty increases
+  assert_true(top.rating.sigma > 3.0)
+}
+
+///|
+test "PlacementTracker provisional matches progress" {
+  let tracker = PlacementTracker::new(threshold=3)
+  assert_true(tracker.is_provisional("player1"))
+
+  let rem1 = tracker.record_match("player1")
+  assert_eq(rem1, 2)
+  assert_true(tracker.is_provisional("player1"))
+
+  let rem2 = tracker.record_match("player1")
+  assert_eq(rem2, 1)
+
+  let rem3 = tracker.record_match("player1")
+  assert_eq(rem3, 0)
+  assert_false(tracker.is_provisional("player1"))
+}
+
+///|
+test "Swiss tournament pairing and Bo3 promotion series" {
+  let board = Leaderboard::new()
+  board.register_player("p1", rating=@types.Rating::new(40.0, 2.0))
+  board.register_player("p2", rating=@types.Rating::new(38.0, 2.0))
+  board.register_player("p3", rating=@types.Rating::new(28.0, 2.0))
+  board.register_player("p4", rating=@types.Rating::new(26.0, 2.0))
+
+  let pairings = board.swiss_pair_round()
+  assert_eq(pairings.length(), 2)
+  assert_eq(pairings[0].0.player_id, "p1")
+  assert_eq(pairings[0].1.player_id, "p2")
+
+  let promo = PromotionSeries::new("p1", "Diamond", wins_required=2)
+  assert_true(promo.record_game(true) is None)
+  assert_true(promo.record_game(false) is None)
+  assert_eq(promo.record_game(true), Some(true))
+}

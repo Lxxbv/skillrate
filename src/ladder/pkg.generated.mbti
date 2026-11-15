@@ -35,7 +35,27 @@ pub fn Leaderboard::new() -> Self
 pub fn Leaderboard::record_match(Self, String, String, @types.GameOutcome, epoch? : Int64) -> Bool
 pub fn Leaderboard::register_player(Self, String, name? : String, rating? : @types.Rating, epoch? : Int64) -> Unit
 pub fn Leaderboard::render_ascii_table(Self, limit? : Int32) -> String
+pub fn Leaderboard::soft_reset_season(Self, alpha? : Double) -> Unit
 pub fn Leaderboard::sort_and_rank(Self) -> Array[LadderEntry]
+pub fn Leaderboard::swiss_pair_round(Self) -> Array[(LadderEntry, LadderEntry)]
+
+pub(all) struct PlacementTracker {
+  provisional_threshold : Int32
+  records : Array[(String, Int32)]
+} derive(Eq, @debug.Debug)
+pub fn PlacementTracker::is_provisional(Self, String) -> Bool
+pub fn PlacementTracker::new(threshold? : Int32) -> Self
+pub fn PlacementTracker::record_match(Self, String) -> Int32
+
+pub(all) struct PromotionSeries {
+  player_id : String
+  target_tier : String
+  wins_required : Int32
+  mut wins : Int32
+  mut losses : Int32
+} derive(Eq, @debug.Debug)
+pub fn PromotionSeries::new(String, String, wins_required? : Int32) -> Self
+pub fn PromotionSeries::record_game(Self, Bool) -> Bool?
 
 // Type aliases
 
