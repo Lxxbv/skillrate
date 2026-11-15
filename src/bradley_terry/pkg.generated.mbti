@@ -1,0 +1,53 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Lxxbv/skillrate/src/bradley_terry"
+
+import {
+  "Lxxbv/skillrate/src/types",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn batch_fit_bt(Array[(Int32, Int32, Double)], Int32, iterations? : Int32, lr? : Double) -> Array[BradleyTerryRating]
+
+pub fn predict_win_bt(BradleyTerryRating, BradleyTerryRating) -> Double
+
+pub fn predict_win_tm(ThurstoneMostellerRating, ThurstoneMostellerRating, config? : ThurstoneMostellerConfig) -> Double
+
+pub fn rate_1v1_bt(BradleyTerryRating, BradleyTerryRating, @types.GameOutcome, config? : BradleyTerryConfig) -> (BradleyTerryRating, BradleyTerryRating)
+
+pub fn rate_1v1_tm(ThurstoneMostellerRating, ThurstoneMostellerRating, @types.GameOutcome, config? : ThurstoneMostellerConfig) -> (ThurstoneMostellerRating, ThurstoneMostellerRating)
+
+// Errors
+
+// Types and methods
+pub(all) struct BradleyTerryConfig {
+  learning_rate : Double
+  tie_margin : Double
+} derive(Eq, @debug.Debug)
+pub fn BradleyTerryConfig::default() -> Self
+pub fn BradleyTerryConfig::new(learning_rate? : Double, tie_margin? : Double) -> Self
+
+pub(all) struct BradleyTerryRating {
+  beta : Double
+} derive(Eq, @debug.Debug)
+pub fn BradleyTerryRating::default() -> Self
+pub fn BradleyTerryRating::new(beta? : Double) -> Self
+pub fn BradleyTerryRating::pi(Self) -> Double
+
+pub(all) struct ThurstoneMostellerConfig {
+  beta : Double
+  draw_margin : Double
+} derive(Eq, @debug.Debug)
+pub fn ThurstoneMostellerConfig::default() -> Self
+pub fn ThurstoneMostellerConfig::new(beta? : Double, draw_margin? : Double) -> Self
+
+pub(all) struct ThurstoneMostellerRating {
+  mu : Double
+  sigma : Double
+} derive(Eq, @debug.Debug)
+pub fn ThurstoneMostellerRating::default() -> Self
+pub fn ThurstoneMostellerRating::new(mu? : Double, sigma? : Double) -> Self
+
+// Type aliases
+
+// Traits
