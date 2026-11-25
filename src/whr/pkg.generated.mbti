@@ -1,0 +1,74 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Lxxbv/skillrate/src/whr"
+
+import {
+  "Lxxbv/skillrate/src/types",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub const WHR_ELO_SCALE : Double = 173.7177927613
+
+// Errors
+
+// Types and methods
+pub(all) struct WHRConfig {
+  w2_elo_per_day : Double
+  virtual_prior_games : Double
+  initial_prior_variance : Double
+  max_newton_step : Double
+  tolerance : Double
+} derive(Eq, @debug.Debug)
+pub fn WHRConfig::default() -> Self
+pub fn WHRConfig::new(w2_elo_per_day? : Double, virtual_prior_games? : Double, initial_prior_variance? : Double, max_newton_step? : Double, tolerance? : Double) -> Self
+pub fn WHRConfig::w2_natural(Self) -> Double
+
+pub(all) struct WHRDayMatch {
+  opponent_id : String
+  opponent_day_index : Int32
+  score : Double
+  handicap_nat : Double
+  weight : Double
+} derive(Eq, @debug.Debug)
+pub fn WHRDayMatch::new(String, Int32, Double, handicap_nat? : Double, weight? : Double) -> Self
+
+pub(all) struct WHREngine {
+  config : WHRConfig
+  timelines : Array[WHRPlayerTimeline]
+  mut total_matches : Int32
+} derive(Eq, @debug.Debug)
+pub fn WHREngine::ensure_player(Self, String) -> Int32
+pub fn WHREngine::export_standings(Self, z? : Double) -> Array[(String, Double, Double, Double)]
+pub fn WHREngine::find_player(Self, String) -> WHRPlayerTimeline?
+pub fn WHREngine::ingest_history(Self, Array[@types.HistoricalMatch]) -> Unit
+pub fn WHREngine::new(config? : WHRConfig) -> Self
+pub fn WHREngine::optimize_player_timeline(Self, Int32) -> Double
+pub fn WHREngine::predict_win_at_day(Self, String, String, Int32, handicap_elo_a? : Double) -> Double
+pub fn WHREngine::query_rating_at_day(Self, String, Int32) -> WHRPlayerDay
+pub fn WHREngine::record_match(Self, String, String, @types.GameOutcome, day_epoch? : Int32, handicap_elo_a? : Double, weight? : Double) -> Unit
+pub fn WHREngine::run_iterations(Self, iterations? : Int32) -> Double
+
+pub(all) struct WHRPlayerDay {
+  day_epoch : Int32
+  mut r : Double
+  mut uncertainty_var : Double
+  matches : Array[WHRDayMatch]
+  is_first_day : Bool
+} derive(Eq, @debug.Debug)
+pub fn WHRPlayerDay::elo(Self, base? : Double) -> Double
+pub fn WHRPlayerDay::elo_deviation(Self) -> Double
+pub fn WHRPlayerDay::new(Int32, r? : Double, uncertainty_var? : Double, is_first_day? : Bool) -> Self
+pub fn WHRPlayerDay::to_bayesian_rating(Self) -> @types.Rating
+
+pub(all) struct WHRPlayerTimeline {
+  player_id : String
+  days : Array[WHRPlayerDay]
+} derive(Eq, @debug.Debug)
+pub fn WHRPlayerTimeline::ensure_day(Self, Int32) -> Int32
+pub fn WHRPlayerTimeline::latest_day(Self) -> WHRPlayerDay?
+pub fn WHRPlayerTimeline::new(String) -> Self
+pub fn WHRPlayerTimeline::peak_elo(Self, base? : Double) -> Double
+
+// Type aliases
+
+// Traits
