@@ -68,3 +68,29 @@ test "Illinois numerical solver" {
   let root2 = illinois_solve(f2, 0.0, 2.0, tolerance=1.0e-7)
   assert_true((root2 - 1.098612).abs() < 1.0e-5)
 }
+
+///|
+test "Gaussian divergences, Brent solver, Simpson quadrature, and Thomas tridiagonal solver" {
+  // Identical distributions have 0 KL, Bhattacharyya, Hellinger, and Wasserstein-2 distance
+  assert_true(gaussian_kl_divergence(25.0, 5.0, 25.0, 5.0).abs() < 1.0e-9)
+  assert_true(bhattacharyya_distance(25.0, 5.0, 25.0, 5.0).abs() < 1.0e-9)
+  assert_true(
+    (bhattacharyya_coefficient(25.0, 5.0, 25.0, 5.0) - 1.0).abs() < 1.0e-9,
+  )
+  assert_true(hellinger_distance(25.0, 5.0, 25.0, 5.0).abs() < 1.0e-9)
+  assert_true(wasserstein2_distance(25.0, 5.0, 25.0, 5.0).abs() < 1.0e-9)
+
+  // Brent solver on x^2 - 4 = 0 in [0, 5] -> 2.0
+  let root = brent_solve(fn(x) { x * x - 4.0 }, 0.0, 5.0)
+  assert_true((root - 2.0).abs() < 1.0e-6)
+
+  // Simpson integration of x^2 over [0, 3] == 9.0
+  let integral = simpson_integrate(fn(x) { x * x }, 0.0, 3.0, intervals=32)
+  assert_true((integral - 9.0).abs() < 1.0e-7)
+
+  // Tridiagonal system: [2 -1; -1 2] * [x0; x1] = [1; 1] -> x0=1, x1=1
+  let sol = solve_tridiagonal([0.0, -1.0], [2.0, 2.0], [-1.0, 0.0], [1.0, 1.0])
+  assert_eq(sol.length(), 2)
+  assert_true((sol[0] - 1.0).abs() < 1.0e-7)
+  assert_true((sol[1] - 1.0).abs() < 1.0e-7)
+}

@@ -10,6 +10,17 @@ import {
 // Errors
 
 // Types and methods
+pub(all) struct ConfidenceInterval {
+  mean : Double
+  lower : Double
+  upper : Double
+  z_score : Double
+} derive(Eq, @debug.Debug)
+pub fn ConfidenceInterval::contains(Self, Double) -> Bool
+pub fn ConfidenceInterval::from_gaussian(Double, Double, z_score? : Double) -> Self
+pub fn ConfidenceInterval::overlaps(Self, Self) -> Bool
+pub fn ConfidenceInterval::width(Self) -> Double
+
 pub(all) enum GameOutcome {
   Win
   Loss
@@ -18,6 +29,29 @@ pub(all) enum GameOutcome {
 pub fn GameOutcome::from_score(Double) -> Self
 pub fn GameOutcome::reverse(Self) -> Self
 pub fn GameOutcome::to_score(Self) -> Double
+
+pub(all) struct HistoricalMatch {
+  match_id : Int32
+  player_a : String
+  player_b : String
+  outcome : GameOutcome
+  day_epoch : Int32
+  handicap_a : Double
+  weight : Double
+} derive(Eq, @debug.Debug)
+pub fn HistoricalMatch::new(Int32, String, String, GameOutcome, day_epoch? : Int32, handicap_a? : Double, weight? : Double) -> Self
+
+pub(all) struct MatchPerformance {
+  player_id : String
+  kills : Int32
+  deaths : Int32
+  assists : Int32
+  damage_share : Double
+  objective_score : Double
+} derive(Eq, @debug.Debug)
+pub fn MatchPerformance::contribution_weight(Self) -> Double
+pub fn MatchPerformance::kda_ratio(Self) -> Double
+pub fn MatchPerformance::new(String, kills? : Int32, deaths? : Int32, assists? : Int32, damage_share? : Double, objective_score? : Double) -> Self
 
 pub(all) struct Player {
   id : String
@@ -30,16 +64,37 @@ pub(all) struct Rating {
   mu : Double
   sigma : Double
 } derive(Eq, @debug.Debug)
+pub fn Rating::apply_dynamics(Self, Double, max_sigma? : Double) -> Self
+pub fn Rating::confidence_interval(Self, z? : Double) -> ConfidenceInterval
 pub fn Rating::default() -> Self
+pub fn Rating::from_mmr(Double, sigma? : Double, base? : Double, scale? : Double) -> Self
+pub fn Rating::fuse_belief(Self, Self) -> Self
 pub fn Rating::new(Double, Double) -> Self
 pub fn Rating::ordinal(Self, z? : Double) -> Double
+pub fn Rating::precision(Self) -> Double
+pub fn Rating::precision_adjusted_mean(Self) -> Double
+pub fn Rating::snr(Self) -> Double
+pub fn Rating::to_mmr(Self, base? : Double, scale? : Double) -> Double
 pub fn Rating::variance(Self) -> Double
+
+pub(all) enum TacticalRole {
+  Top
+  Jungle
+  Mid
+  Bot
+  Support
+  Flex
+} derive(Eq, @debug.Debug)
+pub fn TacticalRole::to_label(Self) -> String
 
 pub(all) struct Team {
   id : String
   players : Array[Player]
   weight : Double
 } derive(Eq, @debug.Debug)
+pub fn Team::average_rating(Self) -> Rating
+pub fn Team::composite_rating(Self) -> Rating
+pub fn Team::internal_skill_spread(Self) -> Double
 pub fn Team::new(String, Array[Player], weight? : Double) -> Self
 pub fn Team::single(Player, weight? : Double) -> Self
 

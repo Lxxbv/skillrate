@@ -1,6 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "Lxxbv/skillrate/src/math"
 
+import {
+  "moonbitlang/core/debug",
+}
+
 // Values
 pub const PI : Double = 3.141592653589793238462643383279502884
 
@@ -8,13 +12,33 @@ pub const SQRT_2 : Double = 1.414213562373095048801688724209698078
 
 pub const SQRT_2PI : Double = 2.506628274631000502415765284811045253
 
+pub fn bhattacharyya_coefficient(Double, Double, Double, Double) -> Double
+
+pub fn bhattacharyya_distance(Double, Double, Double, Double) -> Double
+
+pub fn brent_solve((Double) -> Double, Double, Double, tolerance? : Double, max_iterations? : Int32) -> Double
+
 pub fn erf(Double) -> Double
 
 pub fn erfc(Double) -> Double
 
 pub fn erfinv(Double) -> Double
 
+pub fn gaussian_jeffreys_divergence(Double, Double, Double, Double) -> Double
+
+pub fn gaussian_kl_divergence(Double, Double, Double, Double) -> Double
+
+pub fn hellinger_distance(Double, Double, Double, Double) -> Double
+
 pub fn illinois_solve((Double) -> Double, Double, Double, tolerance? : Double, max_iterations? : Int32) -> Double
+
+pub fn logistic_cdf(Double, scale? : Double) -> Double
+
+pub fn logistic_pdf(Double, scale? : Double) -> Double
+
+pub fn logit(Double, scale? : Double) -> Double
+
+pub fn newton_raphson_solve((Double) -> Double, (Double) -> Double, Double, tolerance? : Double, max_iterations? : Int32) -> Double
 
 pub fn normal_cdf(Double) -> Double
 
@@ -22,9 +46,30 @@ pub fn normal_cdf_inv(Double) -> Double
 
 pub fn normal_pdf(Double) -> Double
 
+pub fn simpson_integrate((Double) -> Double, Double, Double, intervals? : Int32) -> Double
+
+pub fn solve_tridiagonal(Array[Double], Array[Double], Array[Double], Array[Double]) -> Array[Double]
+
+pub fn truncated_normal_draw_v(Double, Double) -> Double
+
+pub fn truncated_normal_draw_w(Double, Double) -> Double
+
+pub fn truncated_normal_win_v(Double, margin? : Double) -> Double
+
+pub fn truncated_normal_win_w(Double, margin? : Double) -> Double
+
+pub fn wasserstein2_distance(Double, Double, Double, Double) -> Double
+
 // Errors
 
 // Types and methods
+pub(all) struct DeterministicRng {
+  mut state : Int64
+} derive(Eq, @debug.Debug)
+pub fn DeterministicRng::new(seed? : Int64) -> Self
+pub fn DeterministicRng::next_double(Self) -> Double
+pub fn DeterministicRng::next_gaussian(Self, mean? : Double, std_dev? : Double) -> Double
+pub fn DeterministicRng::next_int(Self) -> Int32
 
 // Type aliases
 
