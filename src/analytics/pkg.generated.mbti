@@ -1,0 +1,89 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Lxxbv/skillrate/src/analytics"
+
+import {
+  "Lxxbv/skillrate/src/types",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn brier_score(Array[PredictionRecord]) -> Double
+
+pub fn compute_ecosystem_telemetry(Array[@types.Rating], calibration_sigma_threshold? : Double) -> EcosystemTelemetry
+
+pub fn detect_cusum_regime_shift(String, Array[(Double, Double)], drift? : Double, threshold? : Double) -> CusumAnomalyReport
+
+pub fn detect_sandbagging_score(Array[(Bool, Double)]) -> (Double, Bool)
+
+pub fn detect_wintrading_collusion(Array[(String, String, Double)], min_encounters? : Int32, surprise_threshold? : Double) -> Array[CollusionPairReport]
+
+pub fn evaluate_calibration(Array[PredictionRecord], num_bins? : Int32) -> CalibrationReport
+
+pub fn kendall_tau_correlation(Array[Double], Array[Double]) -> Double
+
+pub fn log_loss(Array[PredictionRecord], eps? : Double) -> Double
+
+pub fn roc_auc_score(Array[PredictionRecord]) -> Double
+
+pub fn spearman_rank_correlation(Array[Int32], Array[Int32]) -> Double
+
+// Errors
+
+// Types and methods
+pub(all) struct CalibrationBin {
+  bin_index : Int32
+  lower_bound : Double
+  upper_bound : Double
+  sample_count : Int32
+  mean_predicted : Double
+  mean_actual : Double
+  calibration_gap : Double
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CalibrationReport {
+  ece : Double
+  mce : Double
+  brier : Double
+  logloss : Double
+  bins : Array[CalibrationBin]
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CollusionPairReport {
+  beneficiary_id : String
+  donor_id : String
+  encounters : Int32
+  beneficiary_wins : Int32
+  cumulative_surprise : Double
+  suspicion_score : Double
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CusumAnomalyReport {
+  player_id : String
+  peak_positive_cusum : Double
+  peak_negative_cusum : Double
+  change_point_match_index : Int32
+  is_boosting_suspected : Bool
+  is_deranking_suspected : Bool
+} derive(Eq, @debug.Debug)
+
+pub(all) struct EcosystemTelemetry {
+  population_size : Int32
+  mean_mu : Double
+  std_dev_mu : Double
+  mean_sigma : Double
+  skewness : Double
+  excess_kurtosis : Double
+  gini_coefficient : Double
+  calibrated_ratio : Double
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PredictionRecord {
+  predicted_prob : Double
+  actual_score : Double
+  weight : Double
+} derive(Eq, @debug.Debug)
+pub fn PredictionRecord::new(Double, Double, weight? : Double) -> Self
+
+// Type aliases
+
+// Traits

@@ -1,0 +1,100 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Lxxbv/skillrate/src/tournament"
+
+import {
+  "Lxxbv/skillrate/src/types",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn evaluate_round_robin_standings(Array[@types.Player], Array[(String, String, @types.GameOutcome)]) -> Array[TournamentEntrant]
+
+pub fn forecast_single_elimination_monte_carlo(Array[@types.Player], simulations? : Int32, seed? : Int64) -> Array[ChampionshipForecast]
+
+pub fn generate_fold_seed_order(Int32) -> Array[Int32]
+
+pub fn generate_round_robin_schedule(Array[String]) -> Array[Array[(String, String)]]
+
+pub fn next_power_of_two(Int32) -> Int32
+
+pub fn seed_entrants_by_rating(Array[@types.Player], z? : Double) -> Array[TournamentEntrant]
+
+// Errors
+
+// Types and methods
+pub(all) struct BracketMatch {
+  match_id : Int32
+  round : Int32
+  slot_a : String
+  slot_b : String
+  mut winner : String
+  mut loser : String
+  mut completed : Bool
+  is_bye : Bool
+} derive(Eq, @debug.Debug)
+pub fn BracketMatch::new(Int32, Int32, String, String) -> Self
+
+pub(all) struct ChampionshipForecast {
+  player_id : String
+  seed : Int32
+  win_title_prob : Double
+  reach_finals_prob : Double
+  reach_semifinals_prob : Double
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DoubleEliminationTournament {
+  entrants : Array[TournamentEntrant]
+  winners_pool : Array[String]
+  losers_pool : Array[String]
+  eliminated : Array[String]
+  completed_matches : Array[BracketMatch]
+  mut next_match_id : Int32
+  mut bracket_reset_triggered : Bool
+  mut champion_id : String
+} derive(Eq, @debug.Debug)
+pub fn DoubleEliminationTournament::from_players(Array[@types.Player]) -> Self
+pub fn DoubleEliminationTournament::get_rating(Self, String) -> @types.Rating
+pub fn DoubleEliminationTournament::run_to_completion(Self, (String, String) -> String) -> String
+
+pub(all) struct SingleEliminationBracket {
+  entrants : Array[TournamentEntrant]
+  bracket_size : Int32
+  mut current_round : Int32
+  rounds : Array[Array[BracketMatch]]
+  mut next_match_id : Int32
+  mut champion_id : String
+} derive(Eq, @debug.Debug)
+pub fn SingleEliminationBracket::from_players(Array[@types.Player]) -> Self
+pub fn SingleEliminationBracket::get_rating(Self, String) -> @types.Rating
+pub fn SingleEliminationBracket::record_match_winner(Self, Int32, String) -> Bool
+
+pub(all) struct SwissTournament {
+  entrants : Array[TournamentEntrant]
+  mut current_round : Int32
+  total_rounds : Int32
+} derive(Eq, @debug.Debug)
+pub fn SwissTournament::new(Array[@types.Player], total_rounds? : Int32) -> Self
+pub fn SwissTournament::pair_next_round(Self) -> Array[(String, String)]
+pub fn SwissTournament::record_result(Self, String, String, @types.GameOutcome) -> Unit
+pub fn SwissTournament::update_tiebreaks_and_sort(Self) -> Array[TournamentEntrant]
+
+pub(all) struct TournamentEntrant {
+  id : String
+  name : String
+  seed : Int32
+  mut rating : @types.Rating
+  mut points : Double
+  mut match_wins : Int32
+  mut match_losses : Int32
+  mut match_draws : Int32
+  mut sonneborn_berger : Double
+  mut buchholz : Double
+  mut median_buchholz : Double
+  opponents_faced : Array[String]
+} derive(Eq, @debug.Debug)
+pub fn TournamentEntrant::has_played(Self, String) -> Bool
+pub fn TournamentEntrant::new(String, name? : String, seed? : Int32, rating? : @types.Rating) -> Self
+
+// Type aliases
+
+// Traits
