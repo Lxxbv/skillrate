@@ -7,21 +7,55 @@ import {
 }
 
 // Values
+pub fn calculate_initial_fide_rating(Array[Double], Double) -> Double
+
 pub fn dwz_development_coeff(Double, Int32, age_base? : Double) -> Double
 
 pub fn expected_score(Double, Double) -> Double
+
+pub fn expected_score_with_advantage(Double, Double, Double) -> Double
+
+pub fn mov_multiplier(Double, Double, Double) -> Double
+
+pub fn normalize_pool_inflation(Array[Double], target_mean? : Double) -> Array[Double]
+
+pub fn predict_series_bo(Double, Double, Int32) -> Double
 
 pub fn predict_win_dwz(DWZRating, DWZRating) -> Double
 
 pub fn predict_win_ecf(ECFRating, ECFRating) -> Double
 
+pub fn predict_win_ingo(IngoRating, IngoRating) -> Double
+
+pub fn predict_win_uscf(USCFRating, USCFRating) -> Double
+
 pub fn rate_1v1(Double, Double, @types.GameOutcome, config? : EloConfig, matches_a? : Int32, matches_b? : Int32) -> (Double, Double)
+
+pub fn rate_1v1_with_advantage(Double, Double, @types.GameOutcome, Double, config? : EloConfig) -> (Double, Double)
 
 pub fn rate_dwz_1v1(DWZRating, DWZRating, @types.GameOutcome, age_base? : Double) -> (DWZRating, DWZRating)
 
+pub fn rate_dwz_period(DWZRating, Array[(DWZRating, Double)], age_base? : Double) -> DWZRating
+
 pub fn rate_ecf_1v1(ECFRating, ECFRating, @types.GameOutcome, period_games? : Double) -> (ECFRating, ECFRating)
 
+pub fn rate_ecf_period(ECFRating, Array[(ECFRating, Double)], period_games? : Double) -> ECFRating
+
+pub fn rate_fide_1v1(FIDERating, FIDERating, @types.GameOutcome) -> (FIDERating, FIDERating)
+
+pub fn rate_ingo_1v1(IngoRating, IngoRating, @types.GameOutcome) -> (IngoRating, IngoRating)
+
+pub fn rate_mov_1v1(Double, Double, Double, Double, config? : EloConfig) -> (Double, Double)
+
+pub fn rate_period(Double, Array[(Double, Double)], config? : EloConfig, matches_played? : Int32) -> Double
+
 pub fn rate_score(Double, Double, Double, config? : EloConfig) -> (Double, Double)
+
+pub fn rate_uscf_1v1(USCFRating, USCFRating, @types.GameOutcome) -> (USCFRating, USCFRating)
+
+pub fn rate_uscf_tournament(USCFRating, Array[(USCFRating, Double)], bonus_threshold? : Double) -> USCFRating
+
+pub fn rating_diff_for_win_rate(Double) -> Double
 
 pub fn resolve_k_factor(EloConfig, Double, matches_played? : Int32) -> Double
 
@@ -50,6 +84,35 @@ pub struct EloConfig {
 } derive(Eq, @debug.Debug)
 pub fn EloConfig::default() -> Self
 pub fn EloConfig::new(k_factor? : Double, initial_rating? : Double, adaptive_k? : Bool) -> Self
+
+pub(all) struct FIDERating {
+  rating : Double
+  games_played : Int32
+  ever_reached_2400 : Bool
+  is_under_18 : Bool
+} derive(Eq, @debug.Debug)
+pub fn FIDERating::k_factor(Self) -> Double
+pub fn FIDERating::new(rating? : Double, games_played? : Int32, ever_reached_2400? : Bool, is_under_18? : Bool) -> Self
+
+pub(all) struct IngoRating {
+  rating : Double
+  age : Int32
+} derive(Eq, @debug.Debug)
+pub fn IngoRating::default() -> Self
+pub fn IngoRating::development_factor(Self) -> Double
+pub fn IngoRating::from_elo(Double, age? : Int32) -> Self
+pub fn IngoRating::new(rating? : Double, age? : Int32) -> Self
+pub fn IngoRating::to_elo(Self) -> Double
+
+pub(all) struct USCFRating {
+  rating : Double
+  games_played : Int32
+  peak_rating : Double
+} derive(Eq, @debug.Debug)
+pub fn USCFRating::default() -> Self
+pub fn USCFRating::effective_games(Self) -> Double
+pub fn USCFRating::new(rating? : Double, games_played? : Int32, peak_rating? : Double) -> Self
+pub fn USCFRating::rating_floor(Self) -> Double
 
 // Type aliases
 

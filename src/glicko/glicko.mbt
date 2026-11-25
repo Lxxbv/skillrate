@@ -191,3 +191,246 @@ pub fn predict_win(player_a : GlickoRating, player_b : GlickoRating) -> Double {
   player_b.deviation * player_b.deviation).sqrt()
   expected_score(player_a.rating, player_b.rating, combined_rd)
 }
+
+// -----------------------------------------------------------------------------
+// Extended Glicko-1 Capabilities: Confidence Bounds, Teams & Round-Robin Periods
+// -----------------------------------------------------------------------------
+
+///|
+/// Compute a 95% (or custom z-score) confidence interval [r - z*RD, r + z*RD].
+pub fn GlickoRating::confidence_interval(
+  self : GlickoRating,
+  z~ : Double = 1.96,
+) -> @types.ConfidenceInterval {
+  @types.ConfidenceInterval::from_gaussian(
+    self.rating,
+    self.deviation,
+    z_score=z,
+  )
+}
+
+///|
+/// Calculate rating reliability index in [0.0, 1.0]:
+/// 1.0 - (RD / max_deviation), where 0.0 is uncalibrated (RD=350) and > 0.85 is tournament-established.
+pub fn GlickoRating::reliability_index(
+  self : GlickoRating,
+  max_deviation~ : Double = 350.0,
+) -> Double {
+  let safe_max = if max_deviation <= 1.0 { 350.0 } else { max_deviation }
+  let ratio = 1.0 - self.deviation / safe_max
+  if ratio < 0.0 {
+    0.0
+  } else if ratio > 1.0 {
+    1.0
+  } else {
+    ratio
+  }
+}
+
+///|
+/// Calculate optimal time constant c given average RD, target max RD, and periods to full decay:
+/// c = sqrt((RD_max^2 - RD_min^2) / periods_to_uncalibrated)
+pub fn compute_time_constant_c(
+  min_rd~ : Double = 50.0,
+  max_rd~ : Double = 350.0,
+  periods_to_reset~ : Double = 30.0,
+) -> Double {
+  let safe_p = if periods_to_reset <= 1.0 { 1.0 } else { periods_to_reset }
+  let diff_sq = max_rd * max_rd - min_rd * min_rd
+  if diff_sq <= 0.0 {
+    10.0
+  } else {
+    (diff_sq / safe_p).sqrt()
+  }
+}
+
+///|
+/// Predict winning probability incorporating a rating handicap / first-mover advantage for Player A.
+pub fn predict_win_with_handicap(
+  player_a : GlickoRating,
+  player_b : GlickoRating,
+  handicap_a : Double,
+) -> Double {
+  let combined_rd = (player_a.deviation * player_a.deviation +
+  player_b.deviation * player_b.deviation).sqrt()
+  expected_score(player_a.rating + handicap_a, player_b.rating, combined_rd)
+}
+
+///|
+/// Rate a 1v1 match with an explicit rating handicap / komi advantage for Player A.
+pub fn rate_1v1_with_handicap(
+  player_a : GlickoRating,
+  player_b : GlickoRating,
+  outcome : @types.GameOutcome,
+  handicap_a : Double,
+  config~ : GlickoConfig = GlickoConfig::default(),
+) -> (GlickoRating, GlickoRating) {
+  let score_a = outcome.to_score()
+  let score_b = 1.0 - score_a
+
+  let shifted_b_for_a = GlickoRating::new(
+    rating=player_b.rating - handicap_a,
+    deviation=player_b.deviation,
+  )
+  let shifted_a_for_b = GlickoRating::new(
+    rating=player_a.rating + handicap_a,
+    deviation=player_a.deviation,
+  )
+
+  let new_a = rate_period(
+    player_a,
+    [GlickoOpponent::new(shifted_b_for_a, score_a)],
+    config~,
+  )
+  let new_b = rate_period(
+    player_b,
+    [GlickoOpponent::new(shifted_a_for_b, score_b)],
+    config~,
+  )
+  (new_a, new_b)
+}
+
+///|
+/// Compute composite team Glicko-1 rating (mean rating, root-mean-square deviation).
+pub fn composite_team_glicko(team : Array[GlickoRating]) -> GlickoRating {
+  let n = team.length()
+  if n == 0 {
+    return GlickoRating::default()
+  }
+  let mut sum_r = 0.0
+  let mut sum_var = 0.0
+  for p in team {
+    sum_r = sum_r + p.rating
+    sum_var = sum_var + p.deviation * p.deviation
+  }
+  let nf = n.to_double()
+  GlickoRating::new(rating=sum_r / nf, deviation=(sum_var / nf).sqrt())
+}
+
+///|
+/// Rate a Two-Team match under Glicko-1 using variance-proportional update attribution:
+/// Players with higher uncertainty (RD^2) absorb a proportionally larger share of the team rating update.
+pub fn rate_two_teams_glicko(
+  team_a : Array[GlickoRating],
+  team_b : Array[GlickoRating],
+  outcome : @types.GameOutcome,
+  config~ : GlickoConfig = GlickoConfig::default(),
+) -> (Array[GlickoRating], Array[GlickoRating]) {
+  if team_a.is_empty() || team_b.is_empty() {
+    return (team_a, team_b)
+  }
+  let comp_a = composite_team_glicko(team_a)
+  let comp_b = composite_team_glicko(team_b)
+  let (new_comp_a, new_comp_b) = rate_1v1(comp_a, comp_b, outcome, config~)
+
+  let delta_r_a = new_comp_a.rating - comp_a.rating
+  let rd_ratio_a = if comp_a.deviation > 1.0e-6 {
+    new_comp_a.deviation / comp_a.deviation
+  } else {
+    1.0
+  }
+
+  let mut total_var_a = 0.0
+  for p in team_a {
+    total_var_a = total_var_a + p.deviation * p.deviation
+  }
+  let avg_var_a = total_var_a / team_a.length().to_double()
+
+  let updated_a : Array[GlickoRating] = []
+  for p in team_a {
+    let weight = if avg_var_a > 1.0e-6 {
+      p.deviation * p.deviation / avg_var_a
+    } else {
+      1.0
+    }
+    let new_rd = p.deviation * rd_ratio_a
+    let clamped_rd = if new_rd < config.min_deviation {
+      config.min_deviation
+    } else if new_rd > config.max_deviation {
+      config.max_deviation
+    } else {
+      new_rd
+    }
+    updated_a.push(
+      GlickoRating::new(
+        rating=p.rating + delta_r_a * weight,
+        deviation=clamped_rd,
+      ),
+    )
+  }
+
+  let delta_r_b = new_comp_b.rating - comp_b.rating
+  let rd_ratio_b = if comp_b.deviation > 1.0e-6 {
+    new_comp_b.deviation / comp_b.deviation
+  } else {
+    1.0
+  }
+
+  let mut total_var_b = 0.0
+  for p in team_b {
+    total_var_b = total_var_b + p.deviation * p.deviation
+  }
+  let avg_var_b = total_var_b / team_b.length().to_double()
+
+  let updated_b : Array[GlickoRating] = []
+  for p in team_b {
+    let weight = if avg_var_b > 1.0e-6 {
+      p.deviation * p.deviation / avg_var_b
+    } else {
+      1.0
+    }
+    let new_rd = p.deviation * rd_ratio_b
+    let clamped_rd = if new_rd < config.min_deviation {
+      config.min_deviation
+    } else if new_rd > config.max_deviation {
+      config.max_deviation
+    } else {
+      new_rd
+    }
+    updated_b.push(
+      GlickoRating::new(
+        rating=p.rating + delta_r_b * weight,
+        deviation=clamped_rd,
+      ),
+    )
+  }
+
+  (updated_a, updated_b)
+}
+
+///|
+/// Evaluate a simultaneous multi-player Glicko-1 rating period from a list of match tuples
+/// (player_i_index, player_j_index, score_for_i).
+/// All players are updated simultaneously against their opponents' pre-period ratings.
+pub fn evaluate_batch_period(
+  players : Array[GlickoRating],
+  matches : Array[(Int32, Int32, Double)],
+  elapsed_periods~ : Double = 0.0,
+  config~ : GlickoConfig = GlickoConfig::default(),
+) -> Array[GlickoRating] {
+  let n = players.length()
+  if n == 0 {
+    return []
+  }
+
+  let buckets : Array[Array[GlickoOpponent]] = []
+  for _ in 0..<n {
+    buckets.push([])
+  }
+
+  for m in matches {
+    let (i, j, s_i) = m
+    if i >= 0 && i < n && j >= 0 && j < n && i != j {
+      buckets[i].push(GlickoOpponent::new(players[j], s_i))
+      buckets[j].push(GlickoOpponent::new(players[i], 1.0 - s_i))
+    }
+  }
+
+  let updated : Array[GlickoRating] = []
+  for idx = 0; idx < n; idx = idx + 1 {
+    updated.push(
+      rate_period(players[idx], buckets[idx], periods=elapsed_periods, config~),
+    )
+  }
+  updated
+}

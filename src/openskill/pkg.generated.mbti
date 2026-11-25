@@ -9,11 +9,19 @@ import {
 // Values
 pub fn predict_draw(Array[@types.Rating], Array[@types.Rating], config? : OpenSkillConfig) -> Double
 
+pub fn predict_multi_team_win_probabilities(Array[Array[@types.Rating]], config? : OpenSkillConfig) -> Array[Double]
+
 pub fn predict_win(Array[@types.Rating], Array[@types.Rating], config? : OpenSkillConfig) -> Double
 
 pub fn rate_2teams(Array[@types.Rating], Array[@types.Rating], @types.GameOutcome, config? : OpenSkillConfig) -> (Array[@types.Rating], Array[@types.Rating])
 
 pub fn rate_teams(Array[Array[@types.Rating]], ranks? : Array[Int32], weights? : Array[Array[Double]], config? : OpenSkillConfig) -> Array[Array[@types.Rating]]
+
+pub fn rate_teams_bradley_terry_full(Array[Array[@types.Rating]], ranks? : Array[Int32], tau? : Double, config? : OpenSkillConfig) -> Array[Array[@types.Rating]]
+
+pub fn rate_teams_plackett_luce(Array[Array[@types.Rating]], ranks? : Array[Int32], config? : OpenSkillConfig) -> Array[Array[@types.Rating]]
+
+pub fn rate_teams_with_telemetry(Array[Array[@types.Rating]], Array[Array[@types.MatchPerformance]], Array[Int32], config? : OpenSkillConfig) -> Array[Array[@types.Rating]]
 
 // Errors
 

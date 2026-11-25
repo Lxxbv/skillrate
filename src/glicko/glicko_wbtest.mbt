@@ -52,3 +52,24 @@ test "Glicko-1: inactivity deviation growth" {
   assert_true(inactive.rating == 1800.0)
   assert_true(inactive.deviation > 60.0)
 }
+
+///|
+test "Glicko-1 team attribution and batch period evaluation" {
+  let t_a = [
+    GlickoRating::new(rating=1500.0, deviation=200.0),
+    GlickoRating::new(rating=1500.0, deviation=100.0),
+  ]
+  let t_b = [
+    GlickoRating::new(rating=1500.0, deviation=150.0),
+    GlickoRating::new(rating=1500.0, deviation=150.0),
+  ]
+  let (up_a, up_b) = rate_two_teams_glicko(t_a, t_b, @types.GameOutcome::Win)
+  assert_true(up_a[0].rating > up_a[1].rating) // higher RD player absorbs larger share
+  assert_true(up_b[0].rating < 1500.0)
+
+  let batch = evaluate_batch_period(
+    [GlickoRating::default(), GlickoRating::default()],
+    [(0, 1, 1.0)],
+  )
+  assert_true(batch[0].rating > batch[1].rating)
+}

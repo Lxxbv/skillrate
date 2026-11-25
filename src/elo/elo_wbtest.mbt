@@ -95,3 +95,26 @@ test "ECF grading 1v1 update and 40-point cap rule" {
   let back = ECFRating::from_elo(elo)
   assert_true((back.rating - 120.0).abs() < 1.0e-9)
 }
+
+///|
+test "Ingo, USCF, FIDE regulations, and Best-of-N series probabilities" {
+  let ingo_a = IngoRating::default()
+  let ingo_b = IngoRating::default()
+  let (up_ia, up_ib) = rate_ingo_1v1(ingo_a, ingo_b, @types.GameOutcome::Win)
+  assert_true(up_ia.rating < ingo_a.rating)
+  assert_true(up_ib.rating > ingo_b.rating)
+
+  let uscf_a = USCFRating::new(
+    rating=1600.0,
+    games_played=20,
+    peak_rating=1850.0,
+  )
+  assert_eq(uscf_a.rating_floor(), 1600.0)
+
+  let init_fide = calculate_initial_fide_rating([1900.0, 1900.0, 1900.0], 2.0)
+  assert_true(init_fide > 1800.0 && init_fide < 2000.0)
+
+  let bo1 = predict_series_bo(1650.0, 1500.0, 1)
+  let bo5 = predict_series_bo(1650.0, 1500.0, 5)
+  assert_true(bo5 > bo1)
+}

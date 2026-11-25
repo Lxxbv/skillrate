@@ -9,15 +9,31 @@ import {
 // Values
 pub const SCALE : Double = 173.7177927613
 
+pub fn composite_team_glicko2(Array[Glicko2Rating]) -> Glicko2Rating
+
+pub fn evaluate_tournament_period(Array[Glicko2Rating], Array[(Int32, Int32, Double)], config? : Glicko2Config) -> Array[Glicko2Rating]
+
 pub fn expected_score(Double, Double, Double) -> Double
 
 pub fn g(Double) -> Double
 
 pub fn predict_win(Glicko2Rating, Glicko2Rating) -> Double
 
+pub fn predict_win_combined(Glicko2Rating, Glicko2Rating) -> Double
+
+pub fn predict_win_with_advantage(Glicko2Rating, Glicko2Rating, Double) -> Double
+
 pub fn rate_1v1(Glicko2Rating, Glicko2Rating, @types.GameOutcome, config? : Glicko2Config) -> (Glicko2Rating, Glicko2Rating)
 
+pub fn rate_1v1_with_advantage(Glicko2Rating, Glicko2Rating, @types.GameOutcome, Double, config? : Glicko2Config) -> (Glicko2Rating, Glicko2Rating)
+
+pub fn rate_ffa_glicko2(Array[Glicko2Rating], Array[Int32], config? : Glicko2Config) -> Array[Glicko2Rating]
+
 pub fn rate_period(Glicko2Rating, Array[OpponentMatch], config? : Glicko2Config) -> Glicko2Rating
+
+pub fn rate_two_teams_glicko2(Array[Glicko2Rating], Array[Glicko2Rating], @types.GameOutcome, config? : Glicko2Config) -> (Array[Glicko2Rating], Array[Glicko2Rating])
+
+pub fn step_inactivity_periods(Glicko2Rating, periods? : Int32, max_deviation? : Double) -> Glicko2Rating
 
 // Errors
 
@@ -34,8 +50,10 @@ pub(all) struct Glicko2Rating {
   deviation : Double
   volatility : Double
 } derive(Eq, @debug.Debug)
+pub fn Glicko2Rating::confidence_interval(Self, z? : Double) -> @types.ConfidenceInterval
 pub fn Glicko2Rating::default() -> Self
 pub fn Glicko2Rating::from_rating(@types.Rating, volatility? : Double) -> Self
+pub fn Glicko2Rating::is_volatile_anomaly(Self, threshold? : Double) -> Bool
 pub fn Glicko2Rating::new(Double, Double, Double) -> Self
 pub fn Glicko2Rating::ordinal(Self, z? : Double) -> Double
 pub fn Glicko2Rating::to_rating(Self) -> @types.Rating

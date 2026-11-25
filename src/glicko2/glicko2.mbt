@@ -240,3 +240,284 @@ pub fn rate_1v1(
 
   (new_a, new_b)
 }
+
+// -----------------------------------------------------------------------------
+// Extended Glicko-2 Capabilities: Multi-Period Decay, Teams, Volatility Analytics
+// -----------------------------------------------------------------------------
+
+///|
+/// Apply inactivity rating deviation growth over `periods` unplayed rating periods:
+/// phi_new = sqrt(phi^2 + periods * sigma^2)
+pub fn step_inactivity_periods(
+  player : Glicko2Rating,
+  periods~ : Int32 = 1,
+  max_deviation~ : Double = 350.0,
+) -> Glicko2Rating {
+  if periods <= 0 {
+    return player
+  }
+  let phi = player.deviation / SCALE
+  let sigma = player.volatility
+  let pf = periods.to_double()
+  let phi_prime = (phi * phi + pf * sigma * sigma).sqrt()
+  let new_rd = phi_prime * SCALE
+  let clamped_rd = if new_rd > max_deviation { max_deviation } else { new_rd }
+  {
+    rating: player.rating,
+    deviation: clamped_rd,
+    volatility: player.volatility,
+  }
+}
+
+///|
+/// Compute a 95% (or custom z-score) confidence interval [r - z*RD, r + z*RD].
+pub fn Glicko2Rating::confidence_interval(
+  self : Glicko2Rating,
+  z~ : Double = 1.96,
+) -> @types.ConfidenceInterval {
+  @types.ConfidenceInterval::from_gaussian(
+    self.rating,
+    self.deviation,
+    z_score=z,
+  )
+}
+
+///|
+/// Check whether a player's volatility sigma exceeds an anomaly threshold
+/// (indicating erratic performance, account sharing, or rapid skill jump).
+pub fn Glicko2Rating::is_volatile_anomaly(
+  self : Glicko2Rating,
+  threshold~ : Double = 0.085,
+) -> Bool {
+  self.volatility >= threshold
+}
+
+///|
+/// Predict expected match score in Glicko-2 taking into account both players'
+/// combined rating deviations: g(sqrt(phi_A^2 + phi_B^2)).
+pub fn predict_win_combined(a : Glicko2Rating, b : Glicko2Rating) -> Double {
+  let mu_a = (a.rating - 1500.0) / SCALE
+  let mu_b = (b.rating - 1500.0) / SCALE
+  let phi_a = a.deviation / SCALE
+  let phi_b = b.deviation / SCALE
+  let phi_comb = (phi_a * phi_a + phi_b * phi_b).sqrt()
+  expected_score(mu_a, mu_b, phi_comb)
+}
+
+///|
+/// Predict winning probability with a rating advantage / komi for Player A.
+pub fn predict_win_with_advantage(
+  a : Glicko2Rating,
+  b : Glicko2Rating,
+  advantage_a : Double,
+) -> Double {
+  let shifted_a = Glicko2Rating::new(
+    a.rating + advantage_a,
+    a.deviation,
+    a.volatility,
+  )
+  predict_win_combined(shifted_a, b)
+}
+
+///|
+/// Rate a 1v1 match in Glicko-2 with a first-mover / home-field rating advantage.
+pub fn rate_1v1_with_advantage(
+  player_a : Glicko2Rating,
+  player_b : Glicko2Rating,
+  outcome : @types.GameOutcome,
+  advantage_a : Double,
+  config~ : Glicko2Config = Glicko2Config::default(),
+) -> (Glicko2Rating, Glicko2Rating) {
+  let score_a = outcome.to_score()
+  let score_b = 1.0 - score_a
+
+  let eff_b = Glicko2Rating::new(
+    player_b.rating - advantage_a,
+    player_b.deviation,
+    player_b.volatility,
+  )
+  let eff_a = Glicko2Rating::new(
+    player_a.rating + advantage_a,
+    player_a.deviation,
+    player_a.volatility,
+  )
+
+  let new_a = rate_period(
+    player_a,
+    [OpponentMatch::new(eff_b, score_a)],
+    config~,
+  )
+  let new_b = rate_period(
+    player_b,
+    [OpponentMatch::new(eff_a, score_b)],
+    config~,
+  )
+  (new_a, new_b)
+}
+
+///|
+/// Compute composite team Glicko-2 rating (mean rating, RMS deviation, RMS volatility).
+pub fn composite_team_glicko2(team : Array[Glicko2Rating]) -> Glicko2Rating {
+  let n = team.length()
+  if n == 0 {
+    return Glicko2Rating::default()
+  }
+  let mut sum_r = 0.0
+  let mut sum_rd_sq = 0.0
+  let mut sum_vol_sq = 0.0
+  for p in team {
+    sum_r = sum_r + p.rating
+    sum_rd_sq = sum_rd_sq + p.deviation * p.deviation
+    sum_vol_sq = sum_vol_sq + p.volatility * p.volatility
+  }
+  let nf = n.to_double()
+  Glicko2Rating::new(
+    sum_r / nf,
+    (sum_rd_sq / nf).sqrt(),
+    (sum_vol_sq / nf).sqrt(),
+  )
+}
+
+///|
+/// Rate a Two-Team match under Glicko-2 with variance-proportional skill attribution.
+pub fn rate_two_teams_glicko2(
+  team_a : Array[Glicko2Rating],
+  team_b : Array[Glicko2Rating],
+  outcome : @types.GameOutcome,
+  config~ : Glicko2Config = Glicko2Config::default(),
+) -> (Array[Glicko2Rating], Array[Glicko2Rating]) {
+  if team_a.is_empty() || team_b.is_empty() {
+    return (team_a, team_b)
+  }
+  let comp_a = composite_team_glicko2(team_a)
+  let comp_b = composite_team_glicko2(team_b)
+  let (new_comp_a, new_comp_b) = rate_1v1(comp_a, comp_b, outcome, config~)
+
+  let delta_a = new_comp_a.rating - comp_a.rating
+  let rd_ratio_a = if comp_a.deviation > 1.0e-6 {
+    new_comp_a.deviation / comp_a.deviation
+  } else {
+    1.0
+  }
+  let vol_ratio_a = if comp_a.volatility > 1.0e-6 {
+    new_comp_a.volatility / comp_a.volatility
+  } else {
+    1.0
+  }
+
+  let mut sum_var_a = 0.0
+  for p in team_a {
+    sum_var_a = sum_var_a + p.deviation * p.deviation
+  }
+  let mean_var_a = sum_var_a / team_a.length().to_double()
+
+  let out_a : Array[Glicko2Rating] = []
+  for p in team_a {
+    let w = if mean_var_a > 1.0e-6 {
+      p.deviation * p.deviation / mean_var_a
+    } else {
+      1.0
+    }
+    out_a.push(
+      Glicko2Rating::new(
+        p.rating + delta_a * w,
+        p.deviation * rd_ratio_a,
+        p.volatility * vol_ratio_a,
+      ),
+    )
+  }
+
+  let delta_b = new_comp_b.rating - comp_b.rating
+  let rd_ratio_b = if comp_b.deviation > 1.0e-6 {
+    new_comp_b.deviation / comp_b.deviation
+  } else {
+    1.0
+  }
+  let vol_ratio_b = if comp_b.volatility > 1.0e-6 {
+    new_comp_b.volatility / comp_b.volatility
+  } else {
+    1.0
+  }
+
+  let mut sum_var_b = 0.0
+  for p in team_b {
+    sum_var_b = sum_var_b + p.deviation * p.deviation
+  }
+  let mean_var_b = sum_var_b / team_b.length().to_double()
+
+  let out_b : Array[Glicko2Rating] = []
+  for p in team_b {
+    let w = if mean_var_b > 1.0e-6 {
+      p.deviation * p.deviation / mean_var_b
+    } else {
+      1.0
+    }
+    out_b.push(
+      Glicko2Rating::new(
+        p.rating + delta_b * w,
+        p.deviation * rd_ratio_b,
+        p.volatility * vol_ratio_b,
+      ),
+    )
+  }
+
+  (out_a, out_b)
+}
+
+///|
+/// Rate a Free-For-All (FFA) contest under Glicko-2 by treating all pairwise placement outcomes
+/// as simultaneous matches within a single Glicko-2 rating period.
+pub fn rate_ffa_glicko2(
+  players : Array[Glicko2Rating],
+  ranks : Array[Int32],
+  config~ : Glicko2Config = Glicko2Config::default(),
+) -> Array[Glicko2Rating] {
+  let n = players.length()
+  if n <= 1 {
+    return players
+  }
+  let results : Array[Glicko2Rating] = []
+  for i = 0; i < n; i = i + 1 {
+    let r_i = if i < ranks.length() { ranks[i] } else { i + 1 }
+    let matches_i : Array[OpponentMatch] = []
+    for j = 0; j < n; j = j + 1 {
+      if i != j {
+        let r_j = if j < ranks.length() { ranks[j] } else { j + 1 }
+        let score = if r_i < r_j { 1.0 } else if r_i > r_j { 0.0 } else { 0.5 }
+        matches_i.push(OpponentMatch::new(players[j], score))
+      }
+    }
+    results.push(rate_period(players[i], matches_i, config~))
+  }
+  results
+}
+
+///|
+/// Evaluate a simultaneous tournament period for an array of Glicko-2 players
+/// given match tuples (player_i_idx, player_j_idx, score_for_i).
+pub fn evaluate_tournament_period(
+  players : Array[Glicko2Rating],
+  matches : Array[(Int32, Int32, Double)],
+  config~ : Glicko2Config = Glicko2Config::default(),
+) -> Array[Glicko2Rating] {
+  let n = players.length()
+  if n == 0 {
+    return []
+  }
+  let buckets : Array[Array[OpponentMatch]] = []
+  for _ in 0..<n {
+    buckets.push([])
+  }
+  for m in matches {
+    let (i, j, s_i) = m
+    if i >= 0 && i < n && j >= 0 && j < n && i != j {
+      buckets[i].push(OpponentMatch::new(players[j], s_i))
+      buckets[j].push(OpponentMatch::new(players[i], 1.0 - s_i))
+    }
+  }
+  let updated : Array[Glicko2Rating] = []
+  for i = 0; i < n; i = i + 1 {
+    updated.push(rate_period(players[i], buckets[i], config~))
+  }
+  updated
+}

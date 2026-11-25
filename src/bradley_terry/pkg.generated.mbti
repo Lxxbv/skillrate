@@ -9,13 +9,31 @@ import {
 // Values
 pub fn batch_fit_bt(Array[(Int32, Int32, Double)], Int32, iterations? : Int32, lr? : Double) -> Array[BradleyTerryRating]
 
+pub fn fisher_information_pair(BradleyTerryRating, BradleyTerryRating) -> Double
+
+pub fn fit_bradley_terry_mm(Array[(Int32, Int32, Double)], Int32, iterations? : Int32, l2_prior? : Double) -> Array[BradleyTerryRating]
+
+pub fn predict_outcomes_davidson(BradleyTerryRating, BradleyTerryRating, nu? : Double) -> (Double, Double, Double)
+
+pub fn predict_outcomes_rao_kupper(BradleyTerryRating, BradleyTerryRating, theta? : Double) -> (Double, Double, Double)
+
 pub fn predict_win_bt(BradleyTerryRating, BradleyTerryRating) -> Double
 
 pub fn predict_win_tm(ThurstoneMostellerRating, ThurstoneMostellerRating, config? : ThurstoneMostellerConfig) -> Double
 
 pub fn rate_1v1_bt(BradleyTerryRating, BradleyTerryRating, @types.GameOutcome, config? : BradleyTerryConfig) -> (BradleyTerryRating, BradleyTerryRating)
 
+pub fn rate_1v1_davidson(BradleyTerryRating, BradleyTerryRating, @types.GameOutcome, nu? : Double, lr? : Double) -> (BradleyTerryRating, BradleyTerryRating)
+
+pub fn rate_1v1_rao_kupper(BradleyTerryRating, BradleyTerryRating, @types.GameOutcome, theta? : Double, lr? : Double) -> (BradleyTerryRating, BradleyTerryRating)
+
 pub fn rate_1v1_tm(ThurstoneMostellerRating, ThurstoneMostellerRating, @types.GameOutcome, config? : ThurstoneMostellerConfig) -> (ThurstoneMostellerRating, ThurstoneMostellerRating)
+
+pub fn rate_ffa_tm(Array[ThurstoneMostellerRating], Array[Int32], config? : ThurstoneMostellerConfig) -> Array[ThurstoneMostellerRating]
+
+pub fn rate_two_teams_tm(Array[ThurstoneMostellerRating], Array[ThurstoneMostellerRating], @types.GameOutcome, config? : ThurstoneMostellerConfig) -> (Array[ThurstoneMostellerRating], Array[ThurstoneMostellerRating])
+
+pub fn select_informative_arena_pairs(Array[BradleyTerryRating], top_k? : Int32) -> Array[(Int32, Int32, Double)]
 
 // Errors
 
@@ -31,8 +49,10 @@ pub(all) struct BradleyTerryRating {
   beta : Double
 } derive(Eq, @debug.Debug)
 pub fn BradleyTerryRating::default() -> Self
+pub fn BradleyTerryRating::from_arena_elo(Double, base? : Double) -> Self
 pub fn BradleyTerryRating::new(beta? : Double) -> Self
 pub fn BradleyTerryRating::pi(Self) -> Double
+pub fn BradleyTerryRating::to_arena_elo(Self, base? : Double) -> Double
 
 pub(all) struct ThurstoneMostellerConfig {
   beta : Double

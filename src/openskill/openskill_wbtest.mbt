@@ -119,3 +119,56 @@ test "OpenSkill win probability prediction" {
   let prob_weak = predict_win(team_weak, team_strong)
   assert_true((prob_strong + prob_weak - 1.0).abs() < 1.0e-9)
 }
+
+///|
+test "OpenSkill Weng-Lin BT-Full, Plackett-Luce, and Telemetry MVP weighting" {
+  let t1 = [@types.Rating::default(), @types.Rating::default()]
+  let t2 = [@types.Rating::default(), @types.Rating::default()]
+
+  let bt_res = rate_teams_bradley_terry_full([t1, t2], ranks=[1, 2])
+  assert_true(bt_res[0][0].mu > 25.0)
+  assert_true(bt_res[1][0].mu < 25.0)
+
+  let pl_res = rate_teams_plackett_luce([t1, t2], ranks=[1, 2])
+  assert_true(pl_res[0][0].mu > 25.0)
+
+  let perfs = [
+    [
+      @types.MatchPerformance::new(
+        "p1",
+        kills=15,
+        deaths=1,
+        assists=10,
+        damage_share=0.45,
+      ),
+      @types.MatchPerformance::new(
+        "p2",
+        kills=1,
+        deaths=8,
+        assists=2,
+        damage_share=0.10,
+      ),
+    ],
+    [
+      @types.MatchPerformance::new(
+        "p3",
+        kills=8,
+        deaths=3,
+        assists=6,
+        damage_share=0.35,
+      ),
+      @types.MatchPerformance::new(
+        "p4",
+        kills=0,
+        deaths=10,
+        assists=1,
+        damage_share=0.10,
+      ),
+    ],
+  ]
+  let tele_res = rate_teams_with_telemetry([t1, t2], perfs, [1, 2])
+  // MVP p1 gains more rating than passenger p2 on the winning team
+  assert_true(tele_res[0][0].mu > tele_res[0][1].mu)
+  // Top performer p3 loses less rating than p4 on the losing team
+  assert_true(tele_res[1][0].mu > tele_res[1][1].mu)
+}

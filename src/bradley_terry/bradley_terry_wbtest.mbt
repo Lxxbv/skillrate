@@ -41,3 +41,18 @@ test "Thurstone-Mosteller: 1v1 closed form Gaussian updates" {
   let (draw_a, draw_b) = rate_1v1_tm(a, b, @types.GameOutcome::Draw)
   assert_true((draw_a.mu - draw_b.mu).abs() < 0.000001)
 }
+
+///|
+test "Davidson tie model, Zermelo MM solver, and Active Learning pair selection" {
+  let a = BradleyTerryRating::new(beta=0.5)
+  let b = BradleyTerryRating::new(beta=0.0)
+  let (pw, pl, pd) = predict_outcomes_davidson(a, b, nu=0.6)
+  assert_true((pw + pl + pd - 1.0).abs() < 1.0e-9)
+  assert_true(pw > pl)
+
+  let mm = fit_bradley_terry_mm([(0, 1, 1.0), (1, 2, 1.0), (0, 2, 1.0)], 3)
+  assert_true(mm[0].beta > mm[1].beta && mm[1].beta > mm[2].beta)
+
+  let top_pairs = select_informative_arena_pairs(mm, top_k=2)
+  assert_eq(top_pairs.length(), 2)
+}

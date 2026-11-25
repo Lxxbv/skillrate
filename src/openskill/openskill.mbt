@@ -270,3 +270,307 @@ pub fn rate_2teams(
   let res = rate_teams([team_a, team_b], ranks~, config~)
   (res[0], res[1])
 }
+
+// -----------------------------------------------------------------------------
+// Extended OpenSkill Models: Weng-Lin BT-Full, TM-Full, Telemetry MVP & Podium
+// -----------------------------------------------------------------------------
+
+///|
+/// Weng-Lin (2011) Algorithm 1: Bradley-Terry Full Pairwise Multi-Team Bayesian Model.
+/// Uses logistic link function P(Team i > Team q) = 1 / (1 + exp(-(mu_i - mu_q) / c_iq))
+/// instead of Gaussian probit, providing heavier tails for upset-prone esports and battle royales.
+pub fn rate_teams_bradley_terry_full(
+  teams : Array[Array[@types.Rating]],
+  ranks~ : Array[Int32] = [],
+  tau~ : Double = 0.0833333,
+  config~ : OpenSkillConfig = OpenSkillConfig::default(),
+) -> Array[Array[@types.Rating]] {
+  let k = teams.length()
+  if k == 0 {
+    return []
+  }
+
+  let effective_ranks : Array[Int32] = if ranks.length() == k {
+    ranks
+  } else {
+    let r = []
+    for i in 0..<k {
+      r.push(i + 1)
+    }
+    r
+  }
+
+  // Apply additive prior dynamics tau^2 before match evaluation
+  let prior_teams : Array[Array[@types.Rating]] = []
+  let team_means : Array[Double] = []
+  let team_vars : Array[Double] = []
+
+  for i in 0..<k {
+    let pt : Array[@types.Rating] = []
+    let mut tm = 0.0
+    let mut tv = 0.0
+    for r in teams[i] {
+      let new_var = r.variance() + tau * tau
+      let pr = @types.Rating::new(r.mu, new_var.sqrt())
+      pt.push(pr)
+      tm = tm + pr.mu
+      tv = tv + new_var
+    }
+    prior_teams.push(pt)
+    team_means.push(tm)
+    team_vars.push(tv)
+  }
+
+  let beta_sq = config.beta * config.beta
+  let updated_teams : Array[Array[@types.Rating]] = []
+
+  for i in 0..<k {
+    let mut omega_i = 0.0
+    let mut delta_i = 0.0
+
+    for q in 0..<k {
+      if i == q {
+        continue
+      }
+      let c_iq = (team_vars[i] + team_vars[q] + 2.0 * beta_sq).sqrt()
+      let p_iq = 1.0 /
+        (1.0 + @core_math.exp(-(team_means[i] - team_means[q]) / c_iq))
+      let s_iq = if effective_ranks[i] < effective_ranks[q] {
+        1.0
+      } else if effective_ranks[i] > effective_ranks[q] {
+        0.0
+      } else {
+        0.5
+      }
+
+      let gamma_iq = if config.gamma > 0.0 {
+        config.gamma
+      } else {
+        team_vars[i].sqrt() / c_iq
+      }
+
+      omega_i = omega_i + team_vars[i] / c_iq * (s_iq - p_iq)
+      delta_i = delta_i +
+        gamma_iq * (team_vars[i] / (c_iq * c_iq)) * p_iq * (1.0 - p_iq)
+    }
+
+    let out_team : Array[@types.Rating] = []
+    let tv_i = if team_vars[i] < 1.0e-9 { 1.0e-9 } else { team_vars[i] }
+    for r in prior_teams[i] {
+      let var_r = r.variance()
+      let share = var_r / tv_i
+      let new_mu = r.mu + share * omega_i
+      let shrink = 1.0 - share * delta_i
+      let safe_shrink = if shrink < 0.0001 { 0.0001 } else { shrink }
+      let new_sigma = (var_r * safe_shrink).sqrt()
+      out_team.push(@types.Rating::new(new_mu, new_sigma))
+    }
+    updated_teams.push(out_team)
+  }
+
+  updated_teams
+}
+
+///|
+/// Weng-Lin (2011) Plackett-Luce Rank-Ordered Multi-Team Model.
+/// Directly models the sequential probability of team rankings:
+/// P(pi) = prod_{q=1}^k (exp(mu_q / c) / sum_{j >= q} exp(mu_j / c))
+pub fn rate_teams_plackett_luce(
+  teams : Array[Array[@types.Rating]],
+  ranks~ : Array[Int32] = [],
+  config~ : OpenSkillConfig = OpenSkillConfig::default(),
+) -> Array[Array[@types.Rating]] {
+  let k = teams.length()
+  if k == 0 {
+    return []
+  }
+
+  let effective_ranks : Array[Int32] = if ranks.length() == k {
+    ranks
+  } else {
+    let r = []
+    for i in 0..<k {
+      r.push(i + 1)
+    }
+    r
+  }
+
+  let team_means : Array[Double] = []
+  let team_vars : Array[Double] = []
+  let mut total_var = 0.0
+
+  for i in 0..<k {
+    let mut tm = 0.0
+    let mut tv = 0.0
+    for r in teams[i] {
+      tm = tm + r.mu
+      tv = tv + r.variance()
+    }
+    team_means.push(tm)
+    team_vars.push(tv)
+    total_var = total_var + tv
+  }
+
+  let c = (total_var + k.to_double() * config.beta * config.beta).sqrt()
+  let scaled_exps : Array[Double] = []
+  for i in 0..<k {
+    scaled_exps.push(@core_math.exp(team_means[i] / c))
+  }
+
+  // For each rank stage q, compute denominator sum_{j : rank[j] >= rank[q]} exp(mu_j / c)
+  let stage_denoms : Array[Double] = []
+  for q in 0..<k {
+    let mut d = 0.0
+    for j in 0..<k {
+      if effective_ranks[j] >= effective_ranks[q] {
+        d = d + scaled_exps[j]
+      }
+    }
+    stage_denoms.push(if d < 1.0e-12 { 1.0e-12 } else { d })
+  }
+
+  let updated_teams : Array[Array[@types.Rating]] = []
+  for i in 0..<k {
+    let mut omega_sum = 0.0
+    let mut delta_sum = 0.0
+    for q in 0..<k {
+      if effective_ranks[q] <= effective_ranks[i] {
+        let p_iq = scaled_exps[i] / stage_denoms[q]
+        let indicator = if i == q { 1.0 } else { 0.0 }
+        omega_sum = omega_sum + (indicator - p_iq) / c
+        delta_sum = delta_sum + p_iq * (1.0 - p_iq) / (c * c)
+      }
+    }
+
+    let gamma_i = if config.gamma > 0.0 {
+      config.gamma
+    } else {
+      team_vars[i].sqrt() / c
+    }
+
+    let out_team : Array[@types.Rating] = []
+    for r in teams[i] {
+      let var_r = r.variance()
+      let new_mu = r.mu + var_r * omega_sum
+      let factor = 1.0 - gamma_i * var_r * delta_sum
+      let safe_factor = if factor < 0.0001 { 0.0001 } else { factor }
+      out_team.push(@types.Rating::new(new_mu, (var_r * safe_factor).sqrt()))
+    }
+    updated_teams.push(out_team)
+  }
+
+  updated_teams
+}
+
+///|
+/// Rate a multi-team match with in-game KDA / MVP telemetry performance weighting.
+/// Winning players with higher MatchPerformance contribution gain extra mu;
+/// losing players with high MatchPerformance contribution have their rating loss cushioned.
+pub fn rate_teams_with_telemetry(
+  teams : Array[Array[@types.Rating]],
+  performances : Array[Array[@types.MatchPerformance]],
+  ranks : Array[Int32],
+  config~ : OpenSkillConfig = OpenSkillConfig::default(),
+) -> Array[Array[@types.Rating]] {
+  let k = teams.length()
+  if k == 0 {
+    return []
+  }
+
+  // First compute standard unweighted update to distinguish winners vs losers
+  let base_updated = rate_teams(teams, ranks~, config~)
+  if performances.length() != k {
+    return base_updated
+  }
+
+  let final_teams : Array[Array[@types.Rating]] = []
+  for i in 0..<k {
+    let team_orig = teams[i]
+    let team_base = base_updated[i]
+    let team_perf = performances[i]
+    let m = team_orig.length()
+    if team_perf.length() != m || m == 0 {
+      final_teams.push(team_base)
+      continue
+    }
+
+    // Normalize contribution weights around mean 1.0 within team i
+    let raw_weights : Array[Double] = []
+    let mut sum_w = 0.0
+    for p in team_perf {
+      let w = p.contribution_weight()
+      raw_weights.push(w)
+      sum_w = sum_w + w
+    }
+    let avg_w = if sum_w > 1.0e-6 { sum_w / m.to_double() } else { 1.0 }
+
+    let adjusted_team : Array[@types.Rating] = []
+    for j in 0..<m {
+      let orig = team_orig[j]
+      let base = team_base[j]
+      let delta_mu = base.mu - orig.mu
+      let norm_w = raw_weights[j] / avg_w
+
+      // If player gained rating (delta_mu >= 0), scale by norm_w;
+      // If player lost rating (delta_mu < 0), scale by (2.0 - norm_w) bounded to [0.4, 1.6]
+      let mult = if delta_mu >= 0.0 {
+        norm_w
+      } else {
+        let inv = 2.0 - norm_w
+        if inv < 0.4 {
+          0.4
+        } else if inv > 1.6 {
+          1.6
+        } else {
+          inv
+        }
+      }
+
+      adjusted_team.push(
+        @types.Rating::new(orig.mu + delta_mu * mult, base.sigma),
+      )
+    }
+    final_teams.push(adjusted_team)
+  }
+
+  final_teams
+}
+
+///|
+/// Predict 1st-place win probabilities for all k teams in a multi-team / Battle Royale lobby
+/// using Plackett-Luce softmax over variance-discounted team ratings.
+pub fn predict_multi_team_win_probabilities(
+  teams : Array[Array[@types.Rating]],
+  config~ : OpenSkillConfig = OpenSkillConfig::default(),
+) -> Array[Double] {
+  let k = teams.length()
+  if k == 0 {
+    return []
+  }
+  let means : Array[Double] = []
+  let mut total_var = 0.0
+  for t in teams {
+    let mut m = 0.0
+    let mut v = 0.0
+    for r in t {
+      m = m + r.mu
+      v = v + r.variance()
+    }
+    means.push(m)
+    total_var = total_var + v
+  }
+  let c = (total_var + k.to_double() * config.beta * config.beta).sqrt()
+  let exps : Array[Double] = []
+  let mut sum_exp = 0.0
+  for m in means {
+    let e = @core_math.exp(m / c)
+    exps.push(e)
+    sum_exp = sum_exp + e
+  }
+  let safe_sum = if sum_exp < 1.0e-12 { 1.0e-12 } else { sum_exp }
+  let probs : Array[Double] = []
+  for e in exps {
+    probs.push(e / safe_sum)
+  }
+  probs
+}

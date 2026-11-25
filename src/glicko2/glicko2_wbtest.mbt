@@ -59,3 +59,21 @@ test "Glicko-2 1v1 duel update" {
   assert_true(new1.deviation < 350.0)
   assert_true(new2.deviation < 350.0)
 }
+
+///|
+test "Glicko-2 Two-Team, Free-For-All, and batch tournament evaluation" {
+  let p1 = Glicko2Rating::default()
+  let p2 = Glicko2Rating::default()
+  let p3 = Glicko2Rating::default()
+  let ffa = rate_ffa_glicko2([p1, p2, p3], [1, 2, 3])
+  assert_true(ffa[0].rating > ffa[1].rating)
+  assert_true(ffa[1].rating > ffa[2].rating)
+
+  let (ta, tb) = rate_two_teams_glicko2(
+    [p1, p2],
+    [p2, p3],
+    @types.GameOutcome::Win,
+  )
+  assert_true(ta[0].rating > 1500.0)
+  assert_true(tb[0].rating < 1500.0)
+}
