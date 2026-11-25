@@ -1,0 +1,71 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Lxxbv/skillrate/src/spectral"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn analyze_hodgerank_intransitivity(Int32, Array[(Int32, Int32, Double)], iterations? : Int32) -> HodgeRankReport
+
+pub fn keener_skew(Double) -> Double
+
+pub fn predict_massey_scores(MasseyRating, MasseyRating, league_avg_score? : Double) -> (Double, Double)
+
+pub fn predict_massey_spread(MasseyRating, MasseyRating) -> Double
+
+pub fn solve_colley_ratings(Int32, Array[(Int32, Int32, Double)], iterations? : Int32, tolerance? : Double) -> Array[ColleyRating]
+
+pub fn solve_hits_authority_hub_ratings(Int32, Array[(Int32, Int32, Double)], iterations? : Int32) -> Array[HitsCompetitiveRating]
+
+pub fn solve_keener_ratings(Int32, Array[(Int32, Int32, Double, Double)], iterations? : Int32, eps? : Double) -> Array[Double]
+
+pub fn solve_markov_pagerank_ratings(Int32, Array[(Int32, Int32, Double)], damping? : Double, iterations? : Int32, tolerance? : Double) -> Array[MarkovRating]
+
+pub fn solve_massey_ratings(Int32, Array[(Int32, Int32, Double, Double)], iterations? : Int32, ridge_reg? : Double) -> Array[MasseyRating]
+
+// Errors
+
+// Types and methods
+pub(all) struct ColleyRating {
+  participant_index : Int32
+  colley_score : Double
+  effective_wins : Double
+  effective_games : Int32
+} derive(Eq, @debug.Debug)
+pub fn ColleyRating::to_elo(Self, base? : Double, scale? : Double) -> Double
+
+pub(all) struct HitsCompetitiveRating {
+  participant_index : Int32
+  authority_score : Double
+  hub_score : Double
+  giant_killer_index : Double
+} derive(Eq, @debug.Debug)
+
+pub(all) struct HodgeRankReport {
+  potentials : Array[Double]
+  residual_l2_error : Double
+  cyclicity_ratio : Double
+  cyclic_triads_count : Int32
+} derive(Eq, @debug.Debug)
+
+pub(all) struct MarkovRating {
+  participant_index : Int32
+  stationary_prob : Double
+  elo_equivalent : Double
+} derive(Eq, @debug.Debug)
+
+pub(all) struct MasseyRating {
+  participant_index : Int32
+  overall_rating : Double
+  offensive_rating : Double
+  defensive_rating : Double
+  points_for : Double
+  points_against : Double
+  games_played : Int32
+} derive(Eq, @debug.Debug)
+pub fn MasseyRating::to_elo(Self, base? : Double, points_to_elo? : Double) -> Double
+
+// Type aliases
+
+// Traits

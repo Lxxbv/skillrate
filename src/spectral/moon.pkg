@@ -1,0 +1,4 @@
+import {
+  "Lxxbv/skillrate/src/types",
+  "moonbitlang/core/math" @core_math,
+}
