@@ -9,7 +9,11 @@ import {
 // Values
 pub const DEFAULT_BETA : Double = 4.166666666666667
 
+pub fn assemble_battle_royale_lobby(Array[@types.Player], Int32, anchor_mu? : Double) -> (Array[@types.Player], Double)
+
 pub fn balance_teams(Array[@types.Player]) -> (Array[@types.Player], Array[@types.Player], Double)
+
+pub fn compute_lane_fairness(Array[(RoleQueuedPlayer, @types.TacticalRole)], Array[(RoleQueuedPlayer, @types.TacticalRole)]) -> Double
 
 pub fn is_fair_match(Array[Array[@types.Rating]], min_quality? : Double, beta? : Double) -> Bool
 
@@ -18,6 +22,10 @@ pub fn match_quality_1v1(@types.Rating, @types.Rating, beta? : Double) -> Double
 pub fn match_quality_2teams(Array[@types.Rating], Array[@types.Rating], beta? : Double) -> Double
 
 pub fn match_quality_teams(Array[Array[@types.Rating]], beta? : Double) -> Double
+
+pub fn optimize_teams_2opt(Array[@types.Player], max_passes? : Int32) -> (Array[@types.Player], Array[@types.Player], Double)
+
+pub fn party_synergy_mu_bonus(Int32) -> Double
 
 pub fn smurf_acceleration_factor(Int32, Double) -> Double
 
@@ -41,6 +49,33 @@ pub(all) struct QueuedPlayer {
   enqueue_tick : Int32
 } derive(Eq, @debug.Debug)
 pub fn QueuedPlayer::new(String, @types.Rating, Int32) -> Self
+
+pub(all) struct RoleBalancedLobby {
+  blue_team : Array[(RoleQueuedPlayer, @types.TacticalRole)]
+  red_team : Array[(RoleQueuedPlayer, @types.TacticalRole)]
+  overall_quality : Double
+  lane_fairness_score : Double
+  average_ping_ms : Double
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RoleMatchmakingQueue {
+  pool : Array[RoleQueuedPlayer]
+} derive(Eq, @debug.Debug)
+pub fn RoleMatchmakingQueue::assemble_5v5_lobby(Self, Int32, base_window? : Double, expansion_rate? : Double) -> RoleBalancedLobby?
+pub fn RoleMatchmakingQueue::enqueue(Self, RoleQueuedPlayer) -> Unit
+pub fn RoleMatchmakingQueue::new() -> Self
+
+pub(all) struct RoleQueuedPlayer {
+  id : String
+  rating : @types.Rating
+  primary_role : @types.TacticalRole
+  secondary_role : @types.TacticalRole
+  enqueue_tick : Int32
+  ping_ms : Int32
+  party_id : String
+} derive(Eq, @debug.Debug)
+pub fn RoleQueuedPlayer::matches_role(Self, @types.TacticalRole, allow_secondary? : Bool) -> Bool
+pub fn RoleQueuedPlayer::new(String, @types.Rating, @types.TacticalRole, secondary_role? : @types.TacticalRole, enqueue_tick? : Int32, ping_ms? : Int32, party_id? : String) -> Self
 
 // Type aliases
 

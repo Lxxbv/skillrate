@@ -71,3 +71,18 @@ test "FIDE Performance Rating 400-rule" {
   let perf_perfect = performance_rating(opponents, 4.0)
   assert_true(perf_perfect > 2700.0)
 }
+
+///|
+test "Unified 15-algorithm backtest comparator on historical match log" {
+  let history = [
+    @types.HistoricalMatch::new(1, "Alpha", "Beta", @types.GameOutcome::Win),
+    @types.HistoricalMatch::new(2, "Alpha", "Gamma", @types.GameOutcome::Win),
+    @types.HistoricalMatch::new(3, "Beta", "Gamma", @types.GameOutcome::Win),
+    @types.HistoricalMatch::new(4, "Alpha", "Beta", @types.GameOutcome::Win),
+  ]
+
+  let results = compare_all_algorithms_on_history(history)
+  assert_eq(results.length(), 15)
+  assert_true(results[0].brier_score <= results[14].brier_score)
+  assert_eq(results[0].matches_evaluated, 4)
+}

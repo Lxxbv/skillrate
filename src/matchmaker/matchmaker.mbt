@@ -337,3 +337,352 @@ pub fn smurf_acceleration_factor(
     raw
   }
 }
+
+// -----------------------------------------------------------------------------
+// 2-Opt Local Search Team Balancer & Premade Party Synergy Offset
+// -----------------------------------------------------------------------------
+
+///|
+/// Calculate premade party MMR synergy offset (in Bayesian mu units).
+/// Coordinated duo/trio/five-stack parties receive an effective skill boost
+/// to compensate for voice communication and tactical coordination.
+pub fn party_synergy_mu_bonus(party_size : Int32) -> Double {
+  if party_size <= 1 {
+    0.0
+  } else if party_size == 2 {
+    0.85
+  } else if party_size == 3 {
+    1.45
+  } else if party_size == 4 {
+    2.10
+  } else {
+    2.80
+  }
+}
+
+///|
+/// Optimize a two-team partition using 2-Opt pairwise swap local search
+/// to strictly maximize `match_quality_2teams`.
+pub fn optimize_teams_2opt(
+  players : Array[@types.Player],
+  max_passes~ : Int32 = 20,
+) -> (Array[@types.Player], Array[@types.Player], Double) {
+  let (init_a, init_b, _) = balance_teams(players)
+  let team_a = init_a.copy()
+  let team_b = init_b.copy()
+  let na = team_a.length()
+  let nb = team_b.length()
+  if na == 0 || nb == 0 {
+    return (team_a, team_b, 1.0)
+  }
+
+  let mut cur_quality = match_quality_2teams(
+    team_a.map(fn(p) { p.rating }),
+    team_b.map(fn(p) { p.rating }),
+  )
+
+  for _pass = 0; _pass < max_passes; _pass = _pass + 1 {
+    let mut improved = false
+    for i = 0; i < na; i = i + 1 {
+      for j = 0; j < nb; j = j + 1 {
+        // Tentatively swap team_a[i] and team_b[j]
+        let tmp = team_a[i]
+        team_a[i] = team_b[j]
+        team_b[j] = tmp
+
+        let candidate_q = match_quality_2teams(
+          team_a.map(fn(p) { p.rating }),
+          team_b.map(fn(p) { p.rating }),
+        )
+        if candidate_q > cur_quality + 1.0e-6 {
+          cur_quality = candidate_q
+          improved = true
+        } else {
+          // Revert swap
+          let rev = team_a[i]
+          team_a[i] = team_b[j]
+          team_b[j] = rev
+        }
+      }
+    }
+    if !improved {
+      break
+    }
+  }
+
+  (team_a, team_b, cur_quality)
+}
+
+// -----------------------------------------------------------------------------
+// Role-Based 5v5 MOBA Matchmaking Engine (Top / Jungle / Mid / Bot / Support)
+// -----------------------------------------------------------------------------
+
+///|
+/// A player queued with primary and secondary tactical roles, latency ping, and party ID.
+pub(all) struct RoleQueuedPlayer {
+  id : String
+  rating : @types.Rating
+  primary_role : @types.TacticalRole
+  secondary_role : @types.TacticalRole
+  enqueue_tick : Int32
+  ping_ms : Int32
+  party_id : String
+} derive(Eq, Debug)
+
+///|
+/// Construct a RoleQueuedPlayer.
+pub fn RoleQueuedPlayer::new(
+  id : String,
+  rating : @types.Rating,
+  primary_role : @types.TacticalRole,
+  secondary_role~ : @types.TacticalRole = @types.TacticalRole::Flex,
+  enqueue_tick~ : Int32 = 0,
+  ping_ms~ : Int32 = 25,
+  party_id~ : String = "",
+) -> RoleQueuedPlayer {
+  { id, rating, primary_role, secondary_role, enqueue_tick, ping_ms, party_id, }
+}
+
+///|
+/// Check if a RoleQueuedPlayer can fill `target_role` via primary, secondary, or Flex.
+pub fn RoleQueuedPlayer::matches_role(
+  self : RoleQueuedPlayer,
+  target_role : @types.TacticalRole,
+  allow_secondary~ : Bool = true,
+) -> Bool {
+  if self.primary_role == target_role ||
+    self.primary_role == @types.TacticalRole::Flex {
+    return true
+  }
+  if allow_secondary &&
+    (
+      self.secondary_role == target_role ||
+      self.secondary_role == @types.TacticalRole::Flex
+    ) {
+    return true
+  }
+  false
+}
+
+///|
+/// Balanced 5v5 role-assigned match lobby.
+pub(all) struct RoleBalancedLobby {
+  blue_team : Array[(RoleQueuedPlayer, @types.TacticalRole)]
+  red_team : Array[(RoleQueuedPlayer, @types.TacticalRole)]
+  overall_quality : Double
+  lane_fairness_score : Double
+  average_ping_ms : Double
+} derive(Eq, Debug)
+
+///|
+/// Role-aware matchmaking queue for 5v5 tactical games.
+pub(all) struct RoleMatchmakingQueue {
+  pool : Array[RoleQueuedPlayer]
+} derive(Eq, Debug)
+
+///|
+/// Construct an empty RoleMatchmakingQueue.
+pub fn RoleMatchmakingQueue::new() -> RoleMatchmakingQueue {
+  { pool: [], }
+}
+
+///|
+/// Enqueue a RoleQueuedPlayer.
+pub fn RoleMatchmakingQueue::enqueue(
+  self : RoleMatchmakingQueue,
+  player : RoleQueuedPlayer,
+) -> Unit {
+  self.pool.push(player)
+}
+
+///|
+/// Compute lane-by-lane matchup fairness across 5 assigned roles in [0.0, 1.0].
+pub fn compute_lane_fairness(
+  blue : Array[(RoleQueuedPlayer, @types.TacticalRole)],
+  red : Array[(RoleQueuedPlayer, @types.TacticalRole)],
+) -> Double {
+  let k = if blue.length() < red.length() {
+    blue.length()
+  } else {
+    red.length()
+  }
+  if k == 0 {
+    return 1.0
+  }
+  let mut sum_q = 0.0
+  for i = 0; i < k; i = i + 1 {
+    let q_lane = match_quality_1v1(blue[i].0.rating, red[i].0.rating)
+    sum_q = sum_q + q_lane
+  }
+  sum_q / k.to_double()
+}
+
+///|
+/// Assemble a role-complete 5v5 match lobby (Top, Jungle, Mid, Bot, Support) from the queue.
+/// Pairs two candidates per role whose skill difference is within the dynamic wait window,
+/// and assigns them to Blue vs Red to minimize total team skill imbalance.
+pub fn RoleMatchmakingQueue::assemble_5v5_lobby(
+  self : RoleMatchmakingQueue,
+  current_tick : Int32,
+  base_window~ : Double = 5.0,
+  expansion_rate~ : Double = 0.5,
+) -> RoleBalancedLobby? {
+  if self.pool.length() < 10 {
+    return None
+  }
+
+  let required_roles = [
+    @types.TacticalRole::Top,
+    @types.TacticalRole::Jungle,
+    @types.TacticalRole::Mid,
+    @types.TacticalRole::Bot,
+    @types.TacticalRole::Support,
+  ]
+
+  let used = Array::make(self.pool.length(), false)
+  let role_pairs : Array[(Int32, Int32, @types.TacticalRole)] = []
+
+  for role in required_roles {
+    let mut found_i = -1
+    let mut found_j = -1
+
+    for i = 0; i < self.pool.length(); i = i + 1 {
+      if used[i] || !self.pool[i].matches_role(role, allow_secondary=true) {
+        continue
+      }
+      let p1 = self.pool[i]
+      let wait1 = if current_tick > p1.enqueue_tick {
+        (current_tick - p1.enqueue_tick).to_double()
+      } else {
+        0.0
+      }
+      let win1 = base_window + expansion_rate * wait1
+
+      for j = i + 1; j < self.pool.length(); j = j + 1 {
+        if used[j] || !self.pool[j].matches_role(role, allow_secondary=true) {
+          continue
+        }
+        let p2 = self.pool[j]
+        let wait2 = if current_tick > p2.enqueue_tick {
+          (current_tick - p2.enqueue_tick).to_double()
+        } else {
+          0.0
+        }
+        let win2 = base_window + expansion_rate * wait2
+        let allowed = if win1 > win2 { win1 } else { win2 }
+
+        if (p1.rating.mu - p2.rating.mu).abs() <= allowed {
+          found_i = i
+          found_j = j
+          break
+        }
+      }
+      if found_i != -1 {
+        break
+      }
+    }
+
+    if found_i == -1 || found_j == -1 {
+      return None
+    }
+    used[found_i] = true
+    used[found_j] = true
+    role_pairs.push((found_i, found_j, role))
+  }
+
+  // Assign each role pair to Blue vs Red greedily to balance total team mu
+  let blue_team : Array[(RoleQueuedPlayer, @types.TacticalRole)] = []
+  let red_team : Array[(RoleQueuedPlayer, @types.TacticalRole)] = []
+  let mut sum_blue = 0.0
+  let mut sum_red = 0.0
+  let mut ping_sum = 0.0
+
+  for rp in role_pairs {
+    let (idx1, idx2, role) = rp
+    let p1 = self.pool[idx1]
+    let p2 = self.pool[idx2]
+    ping_sum = ping_sum + (p1.ping_ms + p2.ping_ms).to_double()
+
+    let (higher, lower) = if p1.rating.mu >= p2.rating.mu {
+      (p1, p2)
+    } else {
+      (p2, p1)
+    }
+
+    if sum_blue <= sum_red {
+      blue_team.push((higher, role))
+      red_team.push((lower, role))
+      sum_blue = sum_blue + higher.rating.mu
+      sum_red = sum_red + lower.rating.mu
+    } else {
+      blue_team.push((lower, role))
+      red_team.push((higher, role))
+      sum_blue = sum_blue + lower.rating.mu
+      sum_red = sum_red + higher.rating.mu
+    }
+  }
+
+  // Remove matched players from pool (in reverse index order)
+  let mut k = self.pool.length() - 1
+  while k >= 0 {
+    if used[k] {
+      let _ = self.pool.remove(k)
+    }
+    k = k - 1
+  }
+
+  let blue_ratings = blue_team.map(fn(pair) { pair.0.rating })
+  let red_ratings = red_team.map(fn(pair) { pair.0.rating })
+  let overall_q = match_quality_2teams(blue_ratings, red_ratings)
+  let lane_q = compute_lane_fairness(blue_team, red_team)
+
+  Some({
+    blue_team,
+    red_team,
+    overall_quality: overall_q,
+    lane_fairness_score: lane_q,
+    average_ping_ms: ping_sum / 10.0,
+  })
+}
+
+///|
+/// Group an array of players into an M-player Free-For-All / Battle Royale lobby
+/// centered around a target skill `anchor_mu`, selecting the closest available participants.
+pub fn assemble_battle_royale_lobby(
+  candidates : Array[@types.Player],
+  lobby_size : Int32,
+  anchor_mu~ : Double = 25.0,
+) -> (Array[@types.Player], Double) {
+  let n = candidates.length()
+  if n == 0 || lobby_size <= 0 {
+    return ([], 0.0)
+  }
+  let sorted = candidates.copy()
+  for i = 0; i < n; i = i + 1 {
+    for j = 0; j < n - 1 - i; j = j + 1 {
+      let d1 = (sorted[j].rating.mu - anchor_mu).abs()
+      let d2 = (sorted[j + 1].rating.mu - anchor_mu).abs()
+      if d1 > d2 {
+        let tmp = sorted[j]
+        sorted[j] = sorted[j + 1]
+        sorted[j + 1] = tmp
+      }
+    }
+  }
+
+  let take = if lobby_size < n { lobby_size } else { n }
+  let selected : Array[@types.Player] = []
+  let mut sum_mu = 0.0
+  for i = 0; i < take; i = i + 1 {
+    selected.push(sorted[i])
+    sum_mu = sum_mu + sorted[i].rating.mu
+  }
+  let mean_mu = sum_mu / take.to_double()
+  let mut var_spread = 0.0
+  for p in selected {
+    let d = p.rating.mu - mean_mu
+    var_spread = var_spread + d * d
+  }
+  let std_spread = (var_spread / take.to_double()).sqrt()
+  (selected, std_spread)
+}

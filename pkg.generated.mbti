@@ -2,18 +2,32 @@
 package "Lxxbv/skillrate"
 
 import {
+  "Lxxbv/skillrate/src/analytics",
   "Lxxbv/skillrate/src/bradley_terry",
   "Lxxbv/skillrate/src/elo",
   "Lxxbv/skillrate/src/glicko",
   "Lxxbv/skillrate/src/glicko2",
   "Lxxbv/skillrate/src/ladder",
   "Lxxbv/skillrate/src/matchmaker",
+  "Lxxbv/skillrate/src/spectral",
+  "Lxxbv/skillrate/src/tournament",
   "Lxxbv/skillrate/src/types",
   "Lxxbv/skillrate/src/unified",
+  "Lxxbv/skillrate/src/whr",
 }
 
 // Values
 pub fn balance_teams(Array[@types.Player]) -> (Array[@types.Player], Array[@types.Player], Double)
+
+pub fn benchmark_all_algorithms(Array[@types.HistoricalMatch]) -> Array[@unified.AlgorithmBacktestResult]
+
+pub fn detect_account_boosting(String, Array[(Double, Double)]) -> @analytics.CusumAnomalyReport
+
+pub fn ecosystem_telemetry(Array[@types.Rating]) -> @analytics.EcosystemTelemetry
+
+pub fn evaluate_forecast_calibration(Array[@analytics.PredictionRecord], num_bins? : Int32) -> @analytics.CalibrationReport
+
+pub fn forecast_tournament(Array[@types.Player], simulations? : Int32) -> Array[@tournament.ChampionshipForecast]
 
 pub fn glicko2_rating(r? : Double, rd? : Double, vol? : Double) -> @glicko2.Glicko2Rating
 
@@ -21,15 +35,25 @@ pub fn glicko_rating(r? : Double, rd? : Double) -> @glicko.GlickoRating
 
 pub fn match_quality(@types.Rating, @types.Rating) -> Double
 
+pub fn new_double_elimination_tournament(Array[@types.Player]) -> @tournament.DoubleEliminationTournament
+
 pub fn new_leaderboard() -> @ladder.Leaderboard
 
 pub fn new_matchmaking_queue() -> @matchmaker.MatchmakingQueue
 
 pub fn new_placement_tracker(threshold? : Int32) -> @ladder.PlacementTracker
 
+pub fn new_single_elimination_bracket(Array[@types.Player]) -> @tournament.SingleEliminationBracket
+
+pub fn new_swiss_tournament(Array[@types.Player], total_rounds? : Int32) -> @tournament.SwissTournament
+
+pub fn new_whr_engine() -> @whr.WHREngine
+
 pub fn performance_rating(Array[Double], Double) -> Double
 
 pub fn rate_bradley_terry(@bradley_terry.BradleyTerryRating, @bradley_terry.BradleyTerryRating, @types.GameOutcome) -> (@bradley_terry.BradleyTerryRating, @bradley_terry.BradleyTerryRating)
+
+pub fn rate_davidson(@bradley_terry.BradleyTerryRating, @bradley_terry.BradleyTerryRating, @types.GameOutcome, nu? : Double) -> (@bradley_terry.BradleyTerryRating, @bradley_terry.BradleyTerryRating)
 
 pub fn rate_dwz(@elo.DWZRating, @elo.DWZRating, @types.GameOutcome) -> (@elo.DWZRating, @elo.DWZRating)
 
@@ -39,11 +63,17 @@ pub fn rate_elo(Double, Double, @types.GameOutcome, k_factor? : Double) -> (Doub
 
 pub fn rate_ffa(Array[@types.Rating], Array[Int32], algo? : @unified.AlgorithmKind) -> Array[@types.Rating]
 
+pub fn rate_fide(@elo.FIDERating, @elo.FIDERating, @types.GameOutcome) -> (@elo.FIDERating, @elo.FIDERating)
+
 pub fn rate_glicko(@glicko.GlickoRating, @glicko.GlickoRating, @types.GameOutcome) -> (@glicko.GlickoRating, @glicko.GlickoRating)
 
 pub fn rate_glicko2(@glicko2.Glicko2Rating, @glicko2.Glicko2Rating, @types.GameOutcome, tau? : Double) -> (@glicko2.Glicko2Rating, @glicko2.Glicko2Rating)
 
+pub fn rate_ingo(@elo.IngoRating, @elo.IngoRating, @types.GameOutcome) -> (@elo.IngoRating, @elo.IngoRating)
+
 pub fn rate_openskill(Array[Array[@types.Rating]], ranks? : Array[Int32], weights? : Array[Array[Double]]) -> Array[Array[@types.Rating]]
+
+pub fn rate_rao_kupper(@bradley_terry.BradleyTerryRating, @bradley_terry.BradleyTerryRating, @types.GameOutcome, theta? : Double) -> (@bradley_terry.BradleyTerryRating, @bradley_terry.BradleyTerryRating)
 
 pub fn rate_thurstone_mosteller(@bradley_terry.ThurstoneMostellerRating, @bradley_terry.ThurstoneMostellerRating, @types.GameOutcome) -> (@bradley_terry.ThurstoneMostellerRating, @bradley_terry.ThurstoneMostellerRating)
 
@@ -51,7 +81,15 @@ pub fn rate_topology(@unified.AlgorithmKind, @unified.MatchTopology, Array[Array
 
 pub fn rate_unified_1v1(@unified.AlgorithmKind, @types.Rating, @types.Rating, @types.GameOutcome) -> (@types.Rating, @types.Rating)
 
+pub fn rate_uscf(@elo.USCFRating, @elo.USCFRating, @types.GameOutcome) -> (@elo.USCFRating, @elo.USCFRating)
+
 pub fn rating(mu? : Double, sigma? : Double) -> @types.Rating
+
+pub fn solve_colley(Int32, Array[(Int32, Int32, Double)]) -> Array[@spectral.ColleyRating]
+
+pub fn solve_markov_pagerank(Int32, Array[(Int32, Int32, Double)]) -> Array[@spectral.MarkovRating]
+
+pub fn solve_massey(Int32, Array[(Int32, Int32, Double, Double)]) -> Array[@spectral.MasseyRating]
 
 pub fn win_probability(Array[@types.Rating], Array[@types.Rating]) -> Double
 

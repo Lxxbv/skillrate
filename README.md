@@ -1,21 +1,22 @@
 # SkillRate
 
-**纯 MoonBit 现代竞技评分、天梯排位与多智能体对战匹配套件**  
-*(Modern Skill Rating, Matchmaking, and Leaderboard Engine in Pure MoonBit)*
+**纯 MoonBit 现代竞技评分、全历史轨迹优化、赛事编排与反作弊匹配套件**  
+*(Comprehensive Skill Rating, Whole-History Optimization, Tournament Bracket & Anti-Cheat Matchmaking Engine in Pure MoonBit)*
 
 [![MoonBit](https://img.shields.io/badge/Language-MoonBit-purple)](https://www.moonbitlang.com/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Target](https://img.shields.io/badge/Target-Wasm--GC%20%7C%20Native-brightgreen)]()
-[![Tests](https://img.shields.io/badge/Tests-48%20Passed%20(100%25)-brightgreen)]()
+[![Tests](https://img.shields.io/badge/Tests-66%20Passed%20(100%25)-brightgreen)]()
+[![LOC](https://img.shields.io/badge/Core%20MoonBit-9%2C500%2B%20LOC-orange)]()
 [![Docs](https://img.shields.io/badge/API-Reference-blue)](docs/api.md)
 
 ---
 
 ## 一、 项目定位 (Overview)
 
-**SkillRate** (`Lxxbv/skillrate`) 是专为竞技游戏、棋类对弈、排位天梯以及 AI 多智能体竞技场（LLM Agent Arena / RLHF 偏好打分）打造的工业级竞技评分套件。100% 纯 MoonBit 原生开发，零任何外部二进制或 C/Rust FFI 依赖，原生极速编译支持 `wasm` 与 `wasm-gc`。
+**SkillRate** (`Lxxbv/skillrate`) 是专为竞技游戏、棋类对弈、电子竞技天梯、锦标赛编排以及 AI 多智能体竞技场（LLM Chatbot Arena / RLHF 偏好学习）打造的工业级竞技评分与撮合基础设施。全仓拥有 **9,500+ 行纯 MoonBit 核心实现代码（总 `.mbt` 代码逾 11,100 行）**，零任何外部二进制或 C/Rust FFI 依赖，原生极速编译支持 `wasm` 与 `wasm-gc`。
 
-对标 Rust `skillratings` 等成熟工业库，SkillRate 建立了统一抽象评分接口与全对局拓扑支持（1v1 单挑、Two-Team 双队对抗、Multi-Team 多队争霸、Free-For-All 个人大乱斗），全景集成了 **Elo**、**Glicko-1**、**Glicko-2**、**Bradley-Terry**、**Thurstone-Mosteller**、**OpenSkill (Weng-Lin)**、**DWZ (德国棋协评分)** 以及 **ECF (英国棋协评分)** 八大核心评分模型，同时内置动态时间窗口排队池、批量大厅配对、连胜炸鱼检测、贪心平衡分队器、瑞士轮赛事编排、晋级赛状态机与赛季软重置。
+深度对标并全面超越 Rust `skillratings` 等成熟工业库，SkillRate 不仅提供统一抽象评分接口与四大对局拓扑支持（1v1 单挑、Two-Team 双队对抗、Multi-Team 多队争霸、Free-For-All 个人大乱斗），更全景集成了 **15 种统一增量/贝叶斯/棋协评分模型**、**Whole-History Rating (WHR) 全历史维纳过程轨迹优化器**、**6 种代数矩阵与谱图中心性评级系统**（Colley、Massey 攻防分解、Markov PageRank、Keener、HITS、HodgeRank 循环三元组分解），以及完整的**淘汰赛/双败/瑞士轮/循环赛锦标赛引擎**与**概率校准/反作弊风控套件**。
 
 ---
 
@@ -23,95 +24,90 @@
 
 | 核心维度 | Rust `skillratings` | Python `openskill` | 微软 TrueSkill™ | **SkillRate (MoonBit)** |
 | :--- | :---: | :---: | :---: | :---: |
-| **语言特性** | Rust (成熟系统语言) | Python (动态解释型) | C# / 专有二进制 | **100% 纯 MoonBit (强类型 + Wasm-GC 原生)** |
-| **外部依赖** | 依赖第三方 crate | 依赖 NumPy / SciPy | 专有依赖 | **0 FFI / 0 外部依赖** |
-| **算法覆盖** | Elo, Glicko, G2, Weng-Lin, TM, BT, DWZ, ECF | 仅限 OpenSkill / Weng-Lin | 仅限 TrueSkill | **八大算法全覆盖：Elo + Glicko + G2 + BT + TM + OpenSkill + DWZ + ECF** |
-| **对局类型** | 1v1, Two-Team, Multi-Team, FFA | 仅限多队 | 1v1, Multi-team | **全对局拓扑统一分发：1v1 / TwoTeam / MultiTeam / FFA** |
-| **匹配治理** | 仅基础计算 | 仅评分结算 | 基础排位 | **动态时间窗口排队池 + 批量大厅撮合 + 平衡分队 + 连胜加速** |
-| **天梯生命周期** | 无 | 无 | 部分内置 | **赛季软重置 + 定级赛跟踪 + Bo3/Bo5 晋级赛 + 瑞士轮编排** |
-| **WebAssembly** | 编译体积偏大 | 无法轻量 Wasm 运行 | 无法 Wasm | **原生 `wasm-gc` 极小体积，毫秒冷启动** |
+| **语言特性与规模** | Rust (系统语言) | Python (动态解释型) | C# / 专有二进制 | **100% 纯 MoonBit (9,500+ 行核心源码，0 FFI)** |
+| **增量与贝叶斯算法**| Elo, Glicko, G2, Weng-Lin, TM, BT, DWZ, ECF, Ingo, USCF | 仅限 OpenSkill / Weng-Lin | 仅限 TrueSkill | **15 种统一模型：Elo / FIDE / USCF / DWZ / ECF / Ingo / Glicko-1 / Glicko-2 / BT / Davidson / Rao-Kupper / TM / OpenSkill 三变体** |
+| **全历史与谱代数模型**| 无 | 无 | 无 (仅限 TrueSkill Through Time) | **内置 WHR 全历史牛顿优化 + Colley / Massey 攻防分解 / Markov PageRank / Keener / HITS / HodgeRank** |
+| **对局拓扑支持** | 1v1, Two-Team, Multi-Team, FFA | 仅限多队 | 1v1, Multi-team | **全对局拓扑统一分发：1v1 / TwoTeam / MultiTeam / FFA + KDA 局内贡献加权** |
+| **撮合匹配治理** | 仅基础计算 | 仅评分结算 | 基础排位 | **动态时间窗口排队池 + 5v5 分路位置队列 + 2-Opt 局部搜索平衡分队 + 组队协同补偿** |
+| **天梯与锦标赛引擎**| 无 | 无 | 部分内置 | **LP 胜点弹性追赶 + 晋级赛/保级盾 + 单败/双败(含重置)/瑞士轮(Buchholz)/Berger 循环赛 + 蒙特卡洛夺冠预测** |
+| **校准与反作弊风控**| 无 | 无 | 无 | **Brier / Log-Loss / ECE / ROC-AUC + CUSUM 代练检测 + 演员刷分图检测 + 生态基尼系数** |
 
 ---
 
 ## 三、 系统架构与模块设计 (Architecture)
 
 ```
-skillrate
+skillrate (11,100+ lines of Pure MoonBit)
 ├── src
-│   ├── types         # 核心领域模型 (Rating, Player, Team, GameOutcome)
-│   ├── math          # 高精度统计数学库 (正态分布 CDF/PDF, erf, Probit, Illinois 根求解器)
-│   ├── elo           # 经典 Elo、德国棋协 DWZ 与英国棋协 ECF 评分引擎
-│   ├── glicko        # 经典 Glicko-1 引擎 (Mark Glickman 1995 规范)
-│   ├── glicko2       # 工业级 Glicko-2 引擎 (Glickman 论文 8 步闭环，含自然方差发散)
-│   ├── bradley_terry # Bradley-Terry 与 Thurstone-Mosteller 成对比较与偏好学习模型
-│   ├── openskill     # OpenSkill 多团队多人贝叶斯评分引擎 (Weng-Lin / Plackett-Luce)
-│   ├── matchmaker    # 赛前对局平衡度分析、动态排队池、贪心平衡分队器与连胜炸鱼检测
-│   ├── ladder        # 天梯排行榜系统 (保守评分 μ-3σ、赛季软重置、定级赛、晋级赛与瑞士轮)
-│   └── unified       # 八大算法与四大对局拓扑统一调度门面 (1v1 / 两队 / 多队 / FFA / 表现分)
+│   ├── types         # 核心领域模型 (Rating, ConfidenceInterval, TacticalRole, MatchPerformance, HistoricalMatch)
+│   ├── math          # 统计数学与数值代数库 (正态/Logistic CDF/PDF/Probit, 截断高斯矩, KL/Hellinger/Wasserstein 散度, Thomas 三对角求解器, Brent/Illinois 根求解器, 确定性 PRNG)
+│   ├── elo           # 经典 Elo (含胜分差 MoV、主客场优势、BoN 级数胜率) 及四大官方棋协体系 (DWZ, ECF, Ingo, USCF, FIDE)
+│   ├── glicko        # 经典 Glicko-1 引擎 (1995 规范、置信区间、可靠度指数、方差加权团队归因与批量周期结算)
+│   ├── glicko2       # 工业级 Glicko-2 引擎 (2001 论文 8 步闭环、波动率异常检测、双队/FFA 与锦标赛周期处理)
+│   ├── bradley_terry # 成对偏好与大模型竞技场引擎 (Bradley-Terry, Davidson 平局模型, Rao-Kupper 阈值模型, Zermelo MM 求解器, Fisher 信息主动学习选对, Thurstone-Mosteller Case V)
+│   ├── openskill     # OpenSkill 多队多人贝叶斯引擎 (Weng-Lin Gaussian, Bradley-Terry Full, Plackett-Luce 及 KDA/MVP 表现加权)
+│   ├── whr           # Whole-History Rating (WHR) 全历史维纳过程轨迹优化器 (三对角 Hessian 牛顿法与布朗桥任意时刻插值)
+│   ├── spectral      # 代数矩阵与谱网络评分系统 (Colley, Massey 攻防分解, Markov PageRank, Keener, HITS 巨人杀手, HodgeRank 循环非传递性分解)
+│   ├── matchmaker    # 赛前对局质量分析、动态时间窗口排队池、5v5 MOBA 分路位置撮合、2-Opt 局部搜索平衡分队与连胜炸鱼加速
+│   ├── ladder        # 天梯排位与段位系统 (保守评分 μ-3σ、LP 胜点弹性追赶与保级盾、赛季软重置、定级赛、Bo3/Bo5 晋级赛与快照涨跌对比)
+│   ├── tournament    # 电子竞技锦标赛编排引擎 (单败淘汰、双败淘汰含总决赛重置、Berger 圆桌循环赛、Swiss 瑞士轮 Buchholz 破平与蒙特卡洛夺冠模拟)
+│   ├── analytics     # 预测校准与反作弊风控套件 (Brier, Log-Loss, ECE/MCE, ROC-AUC, Kendall/Spearman 秩相关, CUSUM 代练检测, 演员刷分与控分检测, 基尼系数)
+│   └── unified       # 15 大算法与 4 大对局拓扑统一调度门面及历史回测基准对比器 (AlgorithmBacktestResult)
 ├── skillrate.mbt     # 顶级统一门面 API
-├── cmd
-│   └── skillrate     # 演示与交互命令行工具
-├── examples
-│   ├── chess_ladder  # 国际象棋特级大师天梯演进模拟
-│   └── team_brawl    # 4v4 MOBA 团队战队天梯模拟
-├── web
-│   └── index.html    # 交互式 Web 可视化竞技场与高斯分布曲线
-└── docs
-    ├── api.md        # 完整 API 与数学公理规范文档
-    ├── dedup.md      # 生态查重与独占性分析报告
-    └── decisions.md  # 关键技术与专利规避架构决策
+├── cmd/skillrate     # 全功能命令行演示工具
+├── examples          # 国际象棋天梯 (chess_ladder) 与 4v4 团队对抗 (team_brawl) 实战模拟器
+├── web/index.html    # 交互式 Web 可视化竞技场与高斯分布曲线
+└── docs              # 完整 API 规范 (api.md)、生态查重 (dedup.md) 与架构决策 (decisions.md)
 ```
 
 ---
 
 ## 四、 快速上手 (Quick Start)
 
-### 1. 统一评分接口与四大对局拓扑 (Unified Interface & Topologies)
+### 1. 15 种算法与四大对局拓扑统一分发 (`src/unified`)
 ```moonbit
 let p1 = @skillrate.rating(mu=30.0, sigma=4.0)
 let p2 = @skillrate.rating(mu=25.0, sigma=4.0)
 
-// 一键切换底层算法（Elo / Glicko / Glicko2 / OpenSkill / ThurstoneMosteller / BradleyTerry / DWZ / ECF）
+// 一键切换 15 种底层算法 (Elo / Glicko / Glicko2 / OpenSkill / OpenSkillBT / OpenSkillPL / ThurstoneMosteller / BradleyTerry / Davidson / RaoKupper / DWZ / ECF / Ingo / USCF / FIDE)
 let (new_a, new_b) = @skillrate.rate_unified_1v1(
-  @unified.AlgorithmKind::ThurstoneMosteller,
+  @unified.AlgorithmKind::Davidson,
   p1,
   p2,
   @types.GameOutcome::Win,
 )
 
-// 4 人大乱斗 (Free-For-All) 按名次结算
-let ffa_updated = @skillrate.rate_ffa([p1, p2, @skillrate.rating(), @skillrate.rating()], [1, 2, 3, 4])
+// 在同一历史对局日志上横向回测全部 15 种算法的 Brier 预测误差
+let benchmark_ranking = @skillrate.benchmark_all_algorithms(history)
 ```
 
-### 2. Glicko-2 评级周期结算 (含偏差与波动率)
+### 2. Whole-History Rating (WHR) 全历史维纳过程轨迹优化 (`src/whr`)
 ```moonbit
-let player = @glicko2.Glicko2Rating::new(1500.0, 200.0, 0.06)
-let matches = [
-  @glicko2.OpponentMatch::new(@glicko2.Glicko2Rating::new(1400.0, 30.0, 0.06), 1.0), // 胜
-  @glicko2.OpponentMatch::new(@glicko2.Glicko2Rating::new(1550.0, 100.0, 0.06), 0.0), // 负
-]
-let updated = @glicko2.rate_period(player, matches)
+let whr = @skillrate.new_whr_engine()
+whr.record_match("AlphaGo", "LeeSedol", @types.GameOutcome::Win, day_epoch=1)
+whr.record_match("AlphaGo", "KeJie", @types.GameOutcome::Win, day_epoch=30)
+let _ = whr.run_iterations(iterations=20)
+
+// 基于布朗桥插值查询任意历史时刻的精确 Elo 与不确定性标准差
+let state_day15 = whr.query_rating_at_day("AlphaGo", 15)
 ```
 
-### 3. Bradley-Terry / LLM Arena 偏好对决与批量拟合
+### 3. 代数矩阵与谱图中心性评级 (`src/spectral`)
 ```moonbit
-let gpt4 = @bt.BradleyTerryRating::new(beta=0.8)
-let claude = @bt.BradleyTerryRating::new(beta=0.6)
-let (up_a, up_b) = @bt.rate_1v1_bt(gpt4, claude, @types.GameOutcome::Win)
+// Colley 无偏矩阵法、Massey 攻防分解与 Markov PageRank 随机游走评级
+let colley = @skillrate.solve_colley(4, matches)
+let massey = @skillrate.solve_massey(4, score_matches)
+let markov = @skillrate.solve_markov_pagerank(4, matches)
 ```
 
-### 4. 动态匹配排队池、自动平衡组队与天梯赛季治理
+### 4. 锦标赛编排、蒙特卡洛夺冠预测与反作弊风控 (`src/tournament` & `src/analytics`)
 ```moonbit
-// 1. 自动将玩家池划分为实力最均衡的两支队伍
-let (team_a, team_b, quality) = @skillrate.balance_teams(players)
+// 构建双败淘汰赛（含败者组冠军逆袭触发的 Grand Finals Bracket Reset）或瑞士轮
+let de_tourney = @skillrate.new_double_elimination_tournament(players)
+let forecasts = @skillrate.forecast_tournament(players, simulations=500)
 
-// 2. 天梯排行榜、瑞士轮配对与赛季软重置
-let board = @skillrate.new_leaderboard()
-board.register_player("p1", name="Alice")
-board.register_player("p2", name="Bob")
-let _ = board.record_match("p1", "p2", @types.GameOutcome::Win)
-let swiss_pairs = board.swiss_pair_round()
-board.soft_reset_season(alpha=0.75)
+// Page's CUSUM 序列变点检测识别代练/炸鱼号
+let anomaly = @skillrate.detect_account_boosting("player_1", match_observations)
 ```
 
 ---
@@ -119,17 +115,15 @@ board.soft_reset_season(alpha=0.75)
 ## 五、 运行与测试验证 (Run & Test)
 
 ```bash
-# 运行全量自动化测试 (48 项全绿通过)
+# 运行全量自动化测试 (66 项测试 100% 全绿通过)
 moon test
 
 # 检查代码格式与静态类型
 moon fmt --check
 moon check
 
-# 运行演示命令行
+# 运行演示命令行与场景案例
 moon run cmd/skillrate
-
-# 运行场景案例
 moon run examples/chess_ladder
 moon run examples/team_brawl
 

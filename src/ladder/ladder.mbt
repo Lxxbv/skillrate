@@ -384,3 +384,286 @@ pub fn PromotionSeries::record_game(
     None
   }
 }
+
+// -----------------------------------------------------------------------------
+// Visible Division Hierarchy, League Points (LP) Rubber-Banding & Demotion Shield
+// -----------------------------------------------------------------------------
+
+///|
+/// Visible competitive division state (e.g., Gold II - 65 LP) decoupled from hidden MMR.
+pub(all) struct DivisionState {
+  player_id : String
+  mut tier_index : Int32 // 0=Bronze, 1=Silver, 2=Gold, 3=Platinum, 4=Diamond, 5=Master, 6=Grandmaster, 7=Challenger
+  mut subdivision : Int32 // 4 (IV) down to 1 (I); 1 for Master+
+  mut league_points : Int32 // 0..100 for standard tiers, uncapped for Master+
+  mut demotion_shield_games : Int32
+  mut hidden_mmr : Double
+} derive(Eq, Debug)
+
+///|
+/// Construct a new DivisionState (default Silver IV, 0 LP, hidden_mmr = 1500.0).
+pub fn DivisionState::new(
+  player_id : String,
+  tier_index~ : Int32 = 1,
+  subdivision~ : Int32 = 4,
+  league_points~ : Int32 = 0,
+  hidden_mmr~ : Double = 1500.0,
+) -> DivisionState {
+  {
+    player_id,
+    tier_index,
+    subdivision,
+    league_points,
+    demotion_shield_games: 3,
+    hidden_mmr,
+  }
+}
+
+///|
+/// Return the canonical tier name for `tier_index`.
+pub fn tier_name_from_index(idx : Int32) -> String {
+  if idx <= 0 {
+    "Bronze"
+  } else if idx == 1 {
+    "Silver"
+  } else if idx == 2 {
+    "Gold"
+  } else if idx == 3 {
+    "Platinum"
+  } else if idx == 4 {
+    "Diamond"
+  } else if idx == 5 {
+    "Master"
+  } else if idx == 6 {
+    "Grandmaster"
+  } else {
+    "Challenger"
+  }
+}
+
+///|
+/// Format visible rank label (e.g. "Gold II (75 LP)" or "Challenger (420 LP)").
+pub fn DivisionState::format_label(self : DivisionState) -> String {
+  let tname = tier_name_from_index(self.tier_index)
+  if self.tier_index >= 5 {
+    tname + " (" + self.league_points.to_string() + " LP)"
+  } else {
+    let sub_roman = if self.subdivision == 1 {
+      "I"
+    } else if self.subdivision == 2 {
+      "II"
+    } else if self.subdivision == 3 {
+      "III"
+    } else {
+      "IV"
+    }
+    tname + " " + sub_roman + " (" + self.league_points.to_string() + " LP)"
+  }
+}
+
+///|
+/// Compute target baseline MMR corresponding to the player's current visible division.
+pub fn DivisionState::expected_division_mmr(self : DivisionState) -> Double {
+  let base_tier_mmr = 1100.0 + self.tier_index.to_double() * 300.0
+  let sub_offset = (4 - self.subdivision).to_double() * 75.0
+  base_tier_mmr + sub_offset
+}
+
+///|
+/// Calculate rubber-banded LP gain or loss based on the discrepancy between
+/// hidden MMR and visible division MMR:
+/// When hidden_mmr > expected_division_mmr, player gains more LP (+25..+34) and loses less (-11..-16).
+pub fn DivisionState::calculate_lp_delta(
+  self : DivisionState,
+  outcome : @types.GameOutcome,
+  base_gain~ : Int32 = 22,
+) -> Int32 {
+  let mmr_gap = self.hidden_mmr - self.expected_division_mmr()
+  // Each 35 MMR above visible rank adds +1 LP on win and cushions -1 LP on loss
+  let bonus = (mmr_gap / 35.0).to_int()
+  let clamped_bonus = if bonus > 12 {
+    12
+  } else if bonus < -10 {
+    -10
+  } else {
+    bonus
+  }
+
+  match outcome {
+    Win => {
+      let gain = base_gain + clamped_bonus
+      if gain < 10 {
+        10
+      } else {
+        gain
+      }
+    }
+    Loss => {
+      let loss = -(base_gain - clamped_bonus)
+      if loss > -8 {
+        -8
+      } else {
+        loss
+      }
+    }
+    Draw => clamped_bonus / 3
+  }
+}
+
+///|
+/// Apply a match result to a player's visible DivisionState, handling automatic
+/// subdivision promotions, tier promotions (with 3-game demotion shield), and demotion protection.
+pub fn DivisionState::apply_match_outcome(
+  self : DivisionState,
+  outcome : @types.GameOutcome,
+  new_hidden_mmr : Double,
+) -> Int32 {
+  self.hidden_mmr = new_hidden_mmr
+  let delta = self.calculate_lp_delta(outcome)
+
+  // Apex tiers (Master / Grandmaster / Challenger) have uncapped LP
+  if self.tier_index >= 5 {
+    let next_lp = self.league_points + delta
+    if next_lp < 0 {
+      if self.demotion_shield_games > 0 {
+        self.demotion_shield_games = self.demotion_shield_games - 1
+        self.league_points = 0
+      } else {
+        // Demote to Diamond I (75 LP)
+        self.tier_index = 4
+        self.subdivision = 1
+        self.league_points = 75
+      }
+    } else {
+      self.league_points = next_lp
+      if self.league_points >= 500 {
+        self.tier_index = 7 // Challenger
+      } else if self.league_points >= 250 {
+        self.tier_index = 6 // Grandmaster
+      } else {
+        self.tier_index = 5 // Master
+      }
+    }
+    return delta
+  }
+
+  let raw_lp = self.league_points + delta
+  if raw_lp >= 100 {
+    // Promote subdivision or tier
+    let overflow = raw_lp - 100
+    if self.subdivision > 1 {
+      self.subdivision = self.subdivision - 1
+      self.league_points = overflow
+      self.demotion_shield_games = 2
+    } else {
+      self.tier_index = self.tier_index + 1
+      self.subdivision = if self.tier_index >= 5 { 1 } else { 4 }
+      self.league_points = overflow
+      self.demotion_shield_games = 3
+    }
+  } else if raw_lp < 0 {
+    if self.league_points > 0 {
+      // Clamp at 0 LP before consuming demotion shield
+      self.league_points = 0
+    } else if self.demotion_shield_games > 0 {
+      self.demotion_shield_games = self.demotion_shield_games - 1
+      self.league_points = 0
+    } else if self.subdivision < 4 {
+      self.subdivision = self.subdivision + 1
+      self.league_points = 75
+    } else if self.tier_index > 0 {
+      self.tier_index = self.tier_index - 1
+      self.subdivision = 1
+      self.league_points = 75
+    } else {
+      self.league_points = 0
+    }
+  } else {
+    self.league_points = raw_lp
+    if delta > 0 && self.demotion_shield_games < 1 {
+      self.demotion_shield_games = 1
+    }
+  }
+  delta
+}
+
+// -----------------------------------------------------------------------------
+// Historical Leaderboard Snapshots & Climb Trajectory Diffs
+// -----------------------------------------------------------------------------
+
+///|
+/// Immutable point-in-time snapshot of a player's rank and conservative score.
+pub(all) struct PlayerRankSnapshot {
+  player_id : String
+  rank : Int32
+  conservative_score : Double
+  mu : Double
+  sigma : Double
+} derive(Eq, Debug)
+
+///|
+/// Rank and score progression delta between two historical leaderboard snapshots.
+pub(all) struct RankClimbDiff {
+  player_id : String
+  old_rank : Int32
+  new_rank : Int32
+  rank_delta : Int32 // positive means climbed higher (e.g., from #5 to #2 -> +3)
+  score_delta : Double
+  mu_delta : Double
+} derive(Eq, Debug)
+
+///|
+/// Capture a sorted snapshot of the current Leaderboard state.
+pub fn Leaderboard::take_snapshot(
+  self : Leaderboard,
+) -> Array[PlayerRankSnapshot] {
+  let ranked = self.sort_and_rank()
+  let snaps : Array[PlayerRankSnapshot] = []
+  for e in ranked {
+    snaps.push({
+      player_id: e.player_id,
+      rank: e.rank,
+      conservative_score: e.conservative_score,
+      mu: e.rating.mu,
+      sigma: e.rating.sigma,
+    })
+  }
+  snaps
+}
+
+///|
+/// Compare an older snapshot against a newer snapshot and return `RankClimbDiff` records
+/// sorted descending by `score_delta` (Most Improved Players first).
+pub fn diff_leaderboard_snapshots(
+  before : Array[PlayerRankSnapshot],
+  after : Array[PlayerRankSnapshot],
+) -> Array[RankClimbDiff] {
+  let diffs : Array[RankClimbDiff] = []
+  for cur in after {
+    for prev in before {
+      if cur.player_id == prev.player_id {
+        diffs.push({
+          player_id: cur.player_id,
+          old_rank: prev.rank,
+          new_rank: cur.rank,
+          rank_delta: prev.rank - cur.rank,
+          score_delta: cur.conservative_score - prev.conservative_score,
+          mu_delta: cur.mu - prev.mu,
+        })
+        break
+      }
+    }
+  }
+
+  let m = diffs.length()
+  for i = 0; i < m; i = i + 1 {
+    for j = 0; j < m - 1 - i; j = j + 1 {
+      if diffs[j].score_delta < diffs[j + 1].score_delta {
+        let tmp = diffs[j]
+        diffs[j] = diffs[j + 1]
+        diffs[j + 1] = tmp
+      }
+    }
+  }
+  diffs
+}

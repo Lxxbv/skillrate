@@ -102,4 +102,47 @@ test "SkillRate top-level facade API" {
     [1, 2],
   )
   assert_true(topo_out[0][0].mu > topo_out[1][0].mu)
+
+  // 9. Extended Facade: Ingo, USCF, FIDE, WHR, Spectral, Tournament & Analytics
+  let (ingo_w, ingo_l) = rate_ingo(
+    @elo.IngoRating::default(),
+    @elo.IngoRating::default(),
+    @types.GameOutcome::Win,
+  )
+  assert_true(ingo_w.rating < ingo_l.rating) // Lower Ingo = higher skill
+
+  let (uscf_w, uscf_l) = rate_uscf(
+    @elo.USCFRating::default(),
+    @elo.USCFRating::default(),
+    @types.GameOutcome::Win,
+  )
+  assert_true(uscf_w.rating > uscf_l.rating)
+
+  let (fide_w, fide_l) = rate_fide(
+    @elo.FIDERating::new(),
+    @elo.FIDERating::new(),
+    @types.GameOutcome::Win,
+  )
+  assert_true(fide_w.rating > fide_l.rating)
+
+  let whr = new_whr_engine()
+  whr.record_match("p1", "p2", @types.GameOutcome::Win, day_epoch=1)
+  let _ = whr.run_iterations(iterations=5)
+  assert_true(
+    whr.query_rating_at_day("p1", 1).elo() >
+    whr.query_rating_at_day("p2", 1).elo(),
+  )
+
+  let colley_res = solve_colley(2, [(0, 1, 1.0)])
+  assert_true(colley_res[0].colley_score > colley_res[1].colley_score)
+
+  let history = [
+    @types.HistoricalMatch::new(1, "A", "B", @types.GameOutcome::Win),
+    @types.HistoricalMatch::new(2, "A", "B", @types.GameOutcome::Win),
+  ]
+  let bench = benchmark_all_algorithms(history)
+  assert_eq(bench.length(), 15)
+
+  let tele = ecosystem_telemetry([rating(mu=30.0), rating(mu=20.0)])
+  assert_eq(tele.population_size, 2)
 }

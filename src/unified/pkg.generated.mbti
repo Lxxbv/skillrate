@@ -7,6 +7,12 @@ import {
 }
 
 // Values
+pub fn all_algorithms() -> Array[AlgorithmKind]
+
+pub fn backtest_algorithm_on_history(AlgorithmKind, Array[@types.HistoricalMatch]) -> AlgorithmBacktestResult
+
+pub fn compare_all_algorithms_on_history(Array[@types.HistoricalMatch]) -> Array[AlgorithmBacktestResult]
+
 pub fn performance_rating(Array[Double], Double) -> Double
 
 pub fn predict_win(AlgorithmKind, @types.Rating, @types.Rating) -> Double
@@ -24,16 +30,32 @@ pub fn rate_two_teams(Array[@types.Rating], Array[@types.Rating], @types.GameOut
 // Errors
 
 // Types and methods
+pub(all) struct AlgorithmBacktestResult {
+  algorithm : AlgorithmKind
+  matches_evaluated : Int32
+  brier_score : Double
+  accuracy_rate : Double
+  final_ratings : Array[(String, @types.Rating)]
+} derive(Eq, @debug.Debug)
+
 pub(all) enum AlgorithmKind {
   Elo
   Glicko
   Glicko2
   OpenSkill
+  OpenSkillBT
+  OpenSkillPL
   ThurstoneMosteller
   BradleyTerry
+  Davidson
+  RaoKupper
   DWZ
   ECF
+  Ingo
+  USCF
+  FIDE
 } derive(Eq, @debug.Debug)
+pub fn AlgorithmKind::name(Self) -> String
 
 pub(all) enum MatchTopology {
   OneVsOne

@@ -121,3 +121,48 @@ test "Batch lobby pairing and smurf win-streak acceleration" {
   let smurf_mult = smurf_acceleration_factor(6, 2.8)
   assert_true(smurf_mult > 1.8 && smurf_mult <= 2.5)
 }
+
+///|
+test "2-Opt local search team balancer and 5v5 Role-Based MOBA queue" {
+  let players = [
+    @types.Player::new("p1", rating=@types.Rating::new(42.0, 2.0)),
+    @types.Player::new("p2", rating=@types.Rating::new(38.0, 2.0)),
+    @types.Player::new("p3", rating=@types.Rating::new(31.0, 2.0)),
+    @types.Player::new("p4", rating=@types.Rating::new(29.0, 2.0)),
+    @types.Player::new("p5", rating=@types.Rating::new(23.0, 2.0)),
+    @types.Player::new("p6", rating=@types.Rating::new(19.0, 2.0)),
+  ]
+  let (_, _, q_snake) = balance_teams(players)
+  let (opt_a, opt_b, q_2opt) = optimize_teams_2opt(players)
+  assert_eq(opt_a.length(), 3)
+  assert_eq(opt_b.length(), 3)
+  assert_true(q_2opt >= q_snake - 1.0e-9)
+
+  let rq = RoleMatchmakingQueue::new()
+  let roles = [
+    @types.TacticalRole::Top,
+    @types.TacticalRole::Jungle,
+    @types.TacticalRole::Mid,
+    @types.TacticalRole::Bot,
+    @types.TacticalRole::Support,
+  ]
+  for i = 0; i < 5; i = i + 1 {
+    rq.enqueue(
+      RoleQueuedPlayer::new(
+        "blue_" + i.to_string(),
+        @types.Rating::new(26.0, 3.0),
+        roles[i],
+      ),
+    )
+    rq.enqueue(
+      RoleQueuedPlayer::new(
+        "red_" + i.to_string(),
+        @types.Rating::new(25.0, 3.0),
+        roles[i],
+      ),
+    )
+  }
+  let lobby = rq.assemble_5v5_lobby(10)
+  assert_true(lobby is Some(_))
+  assert_eq(rq.pool.length(), 0)
+}

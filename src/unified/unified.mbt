@@ -5,11 +5,62 @@ pub(all) enum AlgorithmKind {
   Glicko
   Glicko2
   OpenSkill
+  OpenSkillBT
+  OpenSkillPL
   ThurstoneMosteller
   BradleyTerry
+  Davidson
+  RaoKupper
   DWZ
   ECF
+  Ingo
+  USCF
+  FIDE
 } derive(Eq, Debug)
+
+///|
+/// Return the human-readable canonical name of an AlgorithmKind.
+pub fn AlgorithmKind::name(self : AlgorithmKind) -> String {
+  match self {
+    Elo => "Elo"
+    Glicko => "Glicko-1"
+    Glicko2 => "Glicko-2"
+    OpenSkill => "OpenSkill (Weng-Lin)"
+    OpenSkillBT => "OpenSkill (Bradley-Terry Full)"
+    OpenSkillPL => "OpenSkill (Plackett-Luce)"
+    ThurstoneMosteller => "Thurstone-Mosteller Case V"
+    BradleyTerry => "Bradley-Terry"
+    Davidson => "Davidson Tie Model"
+    RaoKupper => "Rao-Kupper Threshold Model"
+    DWZ => "DWZ (German Chess Federation)"
+    ECF => "ECF (English Chess Federation)"
+    Ingo => "Ingo (Hoesslinger System)"
+    USCF => "USCF (US Chess Federation)"
+    FIDE => "FIDE Official Regulations"
+  }
+}
+
+///|
+/// Return an array containing all 15 supported rating algorithms in SkillRate.
+pub fn all_algorithms() -> Array[AlgorithmKind] {
+  [
+    Elo,
+    Glicko,
+    Glicko2,
+    OpenSkill,
+    OpenSkillBT,
+    OpenSkillPL,
+    ThurstoneMosteller,
+    BradleyTerry,
+    Davidson,
+    RaoKupper,
+    DWZ,
+    ECF,
+    Ingo,
+    USCF,
+    FIDE,
+  ]
+}
 
 ///|
 /// Match topology describing the structure and participant grouping of a contest.
@@ -167,6 +218,71 @@ pub fn rate_1v1(
       (
         @types.Rating::new(new_a.to_elo() / 60.0, player_a.sigma * 0.98),
         @types.Rating::new(new_b.to_elo() / 60.0, player_b.sigma * 0.98),
+      )
+    }
+    OpenSkillBT => {
+      let teams = [[player_a], [player_b]]
+      let ranks = match outcome {
+        Win => [1, 2]
+        Loss => [2, 1]
+        Draw => [1, 1]
+      }
+      let res = @openskill.rate_teams_bradley_terry_full(teams, ranks~)
+      (res[0][0], res[1][0])
+    }
+    OpenSkillPL => {
+      let teams = [[player_a], [player_b]]
+      let ranks = match outcome {
+        Win => [1, 2]
+        Loss => [2, 1]
+        Draw => [1, 1]
+      }
+      let res = @openskill.rate_teams_plackett_luce(teams, ranks~)
+      (res[0][0], res[1][0])
+    }
+    Davidson => {
+      let bt_a = @bt.BradleyTerryRating::new(beta=player_a.mu / 10.0)
+      let bt_b = @bt.BradleyTerryRating::new(beta=player_b.mu / 10.0)
+      let (new_a, new_b) = @bt.rate_1v1_davidson(bt_a, bt_b, outcome)
+      (
+        @types.Rating::new(new_a.beta * 10.0, player_a.sigma * 0.98),
+        @types.Rating::new(new_b.beta * 10.0, player_b.sigma * 0.98),
+      )
+    }
+    RaoKupper => {
+      let bt_a = @bt.BradleyTerryRating::new(beta=player_a.mu / 10.0)
+      let bt_b = @bt.BradleyTerryRating::new(beta=player_b.mu / 10.0)
+      let (new_a, new_b) = @bt.rate_1v1_rao_kupper(bt_a, bt_b, outcome)
+      (
+        @types.Rating::new(new_a.beta * 10.0, player_a.sigma * 0.98),
+        @types.Rating::new(new_b.beta * 10.0, player_b.sigma * 0.98),
+      )
+    }
+    Ingo => {
+      let ingo_a = @elo.IngoRating::from_elo(player_a.mu * 60.0)
+      let ingo_b = @elo.IngoRating::from_elo(player_b.mu * 60.0)
+      let (new_a, new_b) = @elo.rate_ingo_1v1(ingo_a, ingo_b, outcome)
+      (
+        @types.Rating::new(new_a.to_elo() / 60.0, player_a.sigma * 0.98),
+        @types.Rating::new(new_b.to_elo() / 60.0, player_b.sigma * 0.98),
+      )
+    }
+    USCF => {
+      let uscf_a = @elo.USCFRating::new(rating=player_a.mu * 60.0)
+      let uscf_b = @elo.USCFRating::new(rating=player_b.mu * 60.0)
+      let (new_a, new_b) = @elo.rate_uscf_1v1(uscf_a, uscf_b, outcome)
+      (
+        @types.Rating::new(new_a.rating / 60.0, player_a.sigma * 0.98),
+        @types.Rating::new(new_b.rating / 60.0, player_b.sigma * 0.98),
+      )
+    }
+    FIDE => {
+      let fide_a = @elo.FIDERating::new(rating=player_a.mu * 60.0)
+      let fide_b = @elo.FIDERating::new(rating=player_b.mu * 60.0)
+      let (new_a, new_b) = @elo.rate_fide_1v1(fide_a, fide_b, outcome)
+      (
+        @types.Rating::new(new_a.rating / 60.0, player_a.sigma * 0.98),
+        @types.Rating::new(new_b.rating / 60.0, player_b.sigma * 0.98),
       )
     }
   }
@@ -367,7 +483,121 @@ pub fn predict_win(
       let ecf_b = @elo.ECFRating::from_elo(player_b.mu * 60.0)
       @elo.predict_win_ecf(ecf_a, ecf_b)
     }
+    OpenSkillBT | OpenSkillPL => @openskill.predict_win([player_a], [player_b])
+    Davidson => {
+      let bt_a = @bt.BradleyTerryRating::new(beta=player_a.mu / 10.0)
+      let bt_b = @bt.BradleyTerryRating::new(beta=player_b.mu / 10.0)
+      let (p_win, _, p_draw) = @bt.predict_outcomes_davidson(bt_a, bt_b)
+      p_win + 0.5 * p_draw
+    }
+    RaoKupper => {
+      let bt_a = @bt.BradleyTerryRating::new(beta=player_a.mu / 10.0)
+      let bt_b = @bt.BradleyTerryRating::new(beta=player_b.mu / 10.0)
+      let (p_win, _, p_draw) = @bt.predict_outcomes_rao_kupper(bt_a, bt_b)
+      p_win + 0.5 * p_draw
+    }
+    Ingo => {
+      let ingo_a = @elo.IngoRating::from_elo(player_a.mu * 60.0)
+      let ingo_b = @elo.IngoRating::from_elo(player_b.mu * 60.0)
+      @elo.predict_win_ingo(ingo_a, ingo_b)
+    }
+    USCF | FIDE => @elo.expected_score(player_a.mu * 60.0, player_b.mu * 60.0)
   }
+}
+
+///|
+/// Summary benchmark metrics from backtesting a rating algorithm over a historical match log.
+pub(all) struct AlgorithmBacktestResult {
+  algorithm : AlgorithmKind
+  matches_evaluated : Int32
+  brier_score : Double
+  accuracy_rate : Double
+  final_ratings : Array[(String, @types.Rating)]
+} derive(Eq, Debug)
+
+///|
+/// Replay an array of `@types.HistoricalMatch` records using `algo`,
+/// evaluating pre-match win predictions against actual outcomes and updating player ratings online.
+pub fn backtest_algorithm_on_history(
+  algo : AlgorithmKind,
+  history : Array[@types.HistoricalMatch],
+) -> AlgorithmBacktestResult {
+  let ids : Array[String] = []
+  let ratings : Array[@types.Rating] = []
+
+  let find_or_insert = fn(pid : String) -> Int32 {
+    for i = 0; i < ids.length(); i = i + 1 {
+      if ids[i] == pid {
+        return i
+      }
+    }
+    ids.push(pid)
+    ratings.push(@types.Rating::default())
+    ids.length() - 1
+  }
+
+  let mut sum_sq_err = 0.0
+  let mut correct_preds = 0
+  let mut total = 0
+
+  for m in history {
+    let idx_a = find_or_insert(m.player_a)
+    let idx_b = find_or_insert(m.player_b)
+    let r_a = ratings[idx_a]
+    let r_b = ratings[idx_b]
+
+    let pred_a = predict_win(algo, r_a, r_b)
+    let act_a = m.outcome.to_score()
+    let diff = pred_a - act_a
+    sum_sq_err = sum_sq_err + diff * diff
+
+    if (pred_a >= 0.5 && act_a >= 0.5) || (pred_a < 0.5 && act_a < 0.5) {
+      correct_preds = correct_preds + 1
+    }
+    total = total + 1
+
+    let (new_a, new_b) = rate_1v1(algo, r_a, r_b, m.outcome)
+    ratings[idx_a] = new_a
+    ratings[idx_b] = new_b
+  }
+
+  let tf = if total > 0 { total.to_double() } else { 1.0 }
+  let final_pairs : Array[(String, @types.Rating)] = []
+  for i = 0; i < ids.length(); i = i + 1 {
+    final_pairs.push((ids[i], ratings[i]))
+  }
+
+  {
+    algorithm: algo,
+    matches_evaluated: total,
+    brier_score: sum_sq_err / tf,
+    accuracy_rate: correct_preds.to_double() / tf,
+    final_ratings: final_pairs,
+  }
+}
+
+///|
+/// Benchmark all 15 supported rating algorithms on the same historical match dataset
+/// and return results sorted ascending by Brier score (most accurate predictive algorithm first).
+pub fn compare_all_algorithms_on_history(
+  history : Array[@types.HistoricalMatch],
+) -> Array[AlgorithmBacktestResult] {
+  let algos = all_algorithms()
+  let results : Array[AlgorithmBacktestResult] = []
+  for a in algos {
+    results.push(backtest_algorithm_on_history(a, history))
+  }
+  let m = results.length()
+  for i = 0; i < m; i = i + 1 {
+    for j = 0; j < m - 1 - i; j = j + 1 {
+      if results[j].brier_score > results[j + 1].brier_score {
+        let tmp = results[j]
+        results[j] = results[j + 1]
+        results[j + 1] = tmp
+      }
+    }
+  }
+  results
 }
 
 ///|

@@ -200,3 +200,160 @@ pub fn new_placement_tracker(
 ) -> @ladder.PlacementTracker {
   @ladder.PlacementTracker::new(threshold~)
 }
+
+// -----------------------------------------------------------------------------
+// Extended Top-Level Facade: Federation Systems, WHR, Spectral, Tournament & Analytics
+// -----------------------------------------------------------------------------
+
+///|
+/// Rate a 1v1 match using the German Ingo system (lower Ingo = higher skill).
+pub fn rate_ingo(
+  player_a : @elo.IngoRating,
+  player_b : @elo.IngoRating,
+  outcome : @types.GameOutcome,
+) -> (@elo.IngoRating, @elo.IngoRating) {
+  @elo.rate_ingo_1v1(player_a, player_b, outcome)
+}
+
+///|
+/// Rate a 1v1 match using the US Chess Federation (USCF) system.
+pub fn rate_uscf(
+  player_a : @elo.USCFRating,
+  player_b : @elo.USCFRating,
+  outcome : @types.GameOutcome,
+) -> (@elo.USCFRating, @elo.USCFRating) {
+  @elo.rate_uscf_1v1(player_a, player_b, outcome)
+}
+
+///|
+/// Rate a 1v1 match using official FIDE rating regulations (K=40/20/10 & 400-point cap).
+pub fn rate_fide(
+  player_a : @elo.FIDERating,
+  player_b : @elo.FIDERating,
+  outcome : @types.GameOutcome,
+) -> (@elo.FIDERating, @elo.FIDERating) {
+  @elo.rate_fide_1v1(player_a, player_b, outcome)
+}
+
+///|
+/// Rate a 1v1 match using the Davidson tie-aware paired comparison model.
+pub fn rate_davidson(
+  player_a : @bt.BradleyTerryRating,
+  player_b : @bt.BradleyTerryRating,
+  outcome : @types.GameOutcome,
+  nu~ : Double = 0.5,
+) -> (@bt.BradleyTerryRating, @bt.BradleyTerryRating) {
+  @bt.rate_1v1_davidson(player_a, player_b, outcome, nu~)
+}
+
+///|
+/// Rate a 1v1 match using the Rao-Kupper tie threshold model.
+pub fn rate_rao_kupper(
+  player_a : @bt.BradleyTerryRating,
+  player_b : @bt.BradleyTerryRating,
+  outcome : @types.GameOutcome,
+  theta~ : Double = 1.25,
+) -> (@bt.BradleyTerryRating, @bt.BradleyTerryRating) {
+  @bt.rate_1v1_rao_kupper(player_a, player_b, outcome, theta~)
+}
+
+///|
+/// Create a new Whole-History Rating (WHR) longitudinal optimization engine.
+pub fn new_whr_engine() -> @whr.WHREngine {
+  @whr.WHREngine::new()
+}
+
+///|
+/// Solve Colley's bias-free matrix ratings for a tournament league.
+pub fn solve_colley(
+  num_participants : Int32,
+  matches : Array[(Int32, Int32, Double)],
+) -> Array[@spectral.ColleyRating] {
+  @spectral.solve_colley_ratings(num_participants, matches)
+}
+
+///|
+/// Solve Massey's least-squares ratings with offensive and defensive decomposition.
+pub fn solve_massey(
+  num_participants : Int32,
+  score_matches : Array[(Int32, Int32, Double, Double)],
+) -> Array[@spectral.MasseyRating] {
+  @spectral.solve_massey_ratings(num_participants, score_matches)
+}
+
+///|
+/// Solve Markov Chain / PageRank centrality ratings from pairwise match outcomes.
+pub fn solve_markov_pagerank(
+  num_participants : Int32,
+  matches : Array[(Int32, Int32, Double)],
+) -> Array[@spectral.MarkovRating] {
+  @spectral.solve_markov_pagerank_ratings(num_participants, matches)
+}
+
+///|
+/// Create a Single-Elimination knockout tournament bracket seeded by conservative rating.
+pub fn new_single_elimination_bracket(
+  players : Array[@types.Player],
+) -> @tournament.SingleEliminationBracket {
+  @tournament.SingleEliminationBracket::from_players(players)
+}
+
+///|
+/// Create a Double-Elimination tournament bracket with Grand Finals bracket reset.
+pub fn new_double_elimination_tournament(
+  players : Array[@types.Player],
+) -> @tournament.DoubleEliminationTournament {
+  @tournament.DoubleEliminationTournament::from_players(players)
+}
+
+///|
+/// Create a multi-round Swiss-System tournament manager with Buchholz tiebreaks.
+pub fn new_swiss_tournament(
+  players : Array[@types.Player],
+  total_rounds~ : Int32 = 5,
+) -> @tournament.SwissTournament {
+  @tournament.SwissTournament::new(players, total_rounds~)
+}
+
+///|
+/// Forecast tournament championship and podium probabilities via Monte Carlo simulation.
+pub fn forecast_tournament(
+  players : Array[@types.Player],
+  simulations~ : Int32 = 200,
+) -> Array[@tournament.ChampionshipForecast] {
+  @tournament.forecast_single_elimination_monte_carlo(players, simulations~)
+}
+
+///|
+/// Benchmark all 15 rating algorithms on a historical match log and rank by Brier score.
+pub fn benchmark_all_algorithms(
+  history : Array[@types.HistoricalMatch],
+) -> Array[@unified.AlgorithmBacktestResult] {
+  @unified.compare_all_algorithms_on_history(history)
+}
+
+///|
+/// Evaluate probabilistic forecast calibration (ECE, MCE, Brier score, Log-Loss).
+pub fn evaluate_forecast_calibration(
+  records : Array[@analytics.PredictionRecord],
+  num_bins~ : Int32 = 10,
+) -> @analytics.CalibrationReport {
+  @analytics.evaluate_calibration(records, num_bins~)
+}
+
+///|
+/// Detect account boosting or intentional deranking via Page's two-sided CUSUM test.
+pub fn detect_account_boosting(
+  player_id : String,
+  observations : Array[(Double, Double)],
+) -> @analytics.CusumAnomalyReport {
+  @analytics.detect_cusum_regime_shift(player_id, observations)
+}
+
+///|
+/// Compute macro-level rating ecosystem health telemetry (Gini, Skewness, Kurtosis).
+pub fn ecosystem_telemetry(
+  ratings : Array[@types.Rating],
+) -> @analytics.EcosystemTelemetry {
+  @analytics.compute_ecosystem_telemetry(ratings)
+}

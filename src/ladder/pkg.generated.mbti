@@ -7,11 +7,29 @@ import {
 }
 
 // Values
+pub fn diff_leaderboard_snapshots(Array[PlayerRankSnapshot], Array[PlayerRankSnapshot]) -> Array[RankClimbDiff]
+
 pub fn resolve_tier(Double) -> String
+
+pub fn tier_name_from_index(Int32) -> String
 
 // Errors
 
 // Types and methods
+pub(all) struct DivisionState {
+  player_id : String
+  mut tier_index : Int32
+  mut subdivision : Int32
+  mut league_points : Int32
+  mut demotion_shield_games : Int32
+  mut hidden_mmr : Double
+} derive(Eq, @debug.Debug)
+pub fn DivisionState::apply_match_outcome(Self, @types.GameOutcome, Double) -> Int32
+pub fn DivisionState::calculate_lp_delta(Self, @types.GameOutcome, base_gain? : Int32) -> Int32
+pub fn DivisionState::expected_division_mmr(Self) -> Double
+pub fn DivisionState::format_label(Self) -> String
+pub fn DivisionState::new(String, tier_index? : Int32, subdivision? : Int32, league_points? : Int32, hidden_mmr? : Double) -> Self
+
 pub(all) struct LadderEntry {
   player_id : String
   name : String
@@ -38,6 +56,7 @@ pub fn Leaderboard::render_ascii_table(Self, limit? : Int32) -> String
 pub fn Leaderboard::soft_reset_season(Self, alpha? : Double) -> Unit
 pub fn Leaderboard::sort_and_rank(Self) -> Array[LadderEntry]
 pub fn Leaderboard::swiss_pair_round(Self) -> Array[(LadderEntry, LadderEntry)]
+pub fn Leaderboard::take_snapshot(Self) -> Array[PlayerRankSnapshot]
 
 pub(all) struct PlacementTracker {
   provisional_threshold : Int32
@@ -46,6 +65,14 @@ pub(all) struct PlacementTracker {
 pub fn PlacementTracker::is_provisional(Self, String) -> Bool
 pub fn PlacementTracker::new(threshold? : Int32) -> Self
 pub fn PlacementTracker::record_match(Self, String) -> Int32
+
+pub(all) struct PlayerRankSnapshot {
+  player_id : String
+  rank : Int32
+  conservative_score : Double
+  mu : Double
+  sigma : Double
+} derive(Eq, @debug.Debug)
 
 pub(all) struct PromotionSeries {
   player_id : String
@@ -56,6 +83,15 @@ pub(all) struct PromotionSeries {
 } derive(Eq, @debug.Debug)
 pub fn PromotionSeries::new(String, String, wins_required? : Int32) -> Self
 pub fn PromotionSeries::record_game(Self, Bool) -> Bool?
+
+pub(all) struct RankClimbDiff {
+  player_id : String
+  old_rank : Int32
+  new_rank : Int32
+  rank_delta : Int32
+  score_delta : Double
+  mu_delta : Double
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

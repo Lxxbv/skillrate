@@ -131,3 +131,33 @@ test "Swiss tournament pairing and Bo3 promotion series" {
   assert_true(promo.record_game(false) is None)
   assert_eq(promo.record_game(true), Some(true))
 }
+
+///|
+test "Division LP rubber-banding, promotion, and snapshot trajectory diffs" {
+  // Player in Silver I (90 LP) with high hidden MMR (1850) wins and promotes to Gold IV
+  let div = DivisionState::new(
+    "p1",
+    tier_index=1,
+    subdivision=1,
+    league_points=90,
+    hidden_mmr=1850.0,
+  )
+  let delta = div.apply_match_outcome(@types.GameOutcome::Win, 1875.0)
+  assert_true(delta >= 25)
+  assert_eq(div.tier_index, 2) // Promoted to Gold
+  assert_eq(div.subdivision, 4) // Gold IV
+
+  let board = Leaderboard::new()
+  board.register_player("p1", rating=@types.Rating::new(25.0, 3.0))
+  board.register_player("p2", rating=@types.Rating::new(28.0, 3.0))
+  let snap1 = board.take_snapshot()
+
+  let _ = board.record_match("p1", "p2", @types.GameOutcome::Win)
+  let _ = board.record_match("p1", "p2", @types.GameOutcome::Win)
+  let snap2 = board.take_snapshot()
+
+  let diffs = diff_leaderboard_snapshots(snap1, snap2)
+  assert_eq(diffs.length(), 2)
+  assert_eq(diffs[0].player_id, "p1")
+  assert_true(diffs[0].score_delta > 0.0)
+}

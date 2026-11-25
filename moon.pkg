@@ -8,4 +8,8 @@ import {
   "Lxxbv/skillrate/src/matchmaker",
   "Lxxbv/skillrate/src/ladder",
   "Lxxbv/skillrate/src/unified",
+  "Lxxbv/skillrate/src/whr",
+  "Lxxbv/skillrate/src/tournament",
+  "Lxxbv/skillrate/src/analytics",
+  "Lxxbv/skillrate/src/spectral",
 }
